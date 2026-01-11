@@ -7,7 +7,12 @@
 pub mod button;
 pub mod input;
 pub mod list;
+mod notifications;
 
 pub use button::{Button, ButtonSize, ButtonVariant, IconButton};
 pub use input::{InputSize, SearchInput, TextArea, TextInput};
 pub use list::{EmptyState, ListDivider, ListHeader, ListItem, LoadingState, VirtualizedListState};
+pub use notifications::{
+    Notification, NotificationAction, NotificationManager, NotificationType, StatusBar,
+    StatusMessage,
+};
