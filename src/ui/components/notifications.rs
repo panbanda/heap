@@ -139,8 +139,7 @@ impl Notification {
 
     /// Creates an error notification.
     pub fn error(id: impl Into<String>, title: impl Into<SharedString>) -> Self {
-        Self::new(id, NotificationType::Error, title)
-            .with_duration(None) // Errors don't auto-dismiss
+        Self::new(id, NotificationType::Error, title).with_duration(None) // Errors don't auto-dismiss
     }
 
     /// Creates an info notification.
@@ -300,12 +299,7 @@ impl NotificationManager {
                             .justify_center()
                             .rounded_full()
                             .bg(rgba(bg))
-                            .child(
-                                div()
-                                    .text_xs()
-                                    .text_color(rgba(accent))
-                                    .child(icon),
-                            ),
+                            .child(div().text_xs().text_color(rgba(accent)).child(icon)),
                     )
                     // Content
                     .child(
@@ -322,46 +316,41 @@ impl NotificationManager {
                                     .child(title),
                             )
                             .when_some(body, |d, b| {
-                                d.child(
-                                    div()
-                                        .text_xs()
-                                        .text_color(rgba(0xA1A1AAFF))
-                                        .child(b),
-                                )
+                                d.child(div().text_xs().text_color(rgba(0xA1A1AAFF)).child(b))
                             })
                             .when(!actions.is_empty(), |d| {
-                                d.child(
-                                    div()
-                                        .mt(px(8.0))
-                                        .flex()
-                                        .gap(px(8.0))
-                                        .children(actions.iter().map(|action| {
-                                            let action_id = action.id.clone();
-                                            let label = action.label.clone();
-                                            let is_primary = action.primary;
-                                            div()
-                                                .id(SharedString::from(format!("action-{}", action_id)))
-                                                .px(px(10.0))
-                                                .py(px(4.0))
-                                                .rounded(px(4.0))
-                                                .cursor_pointer()
-                                                .when(is_primary, |d| {
-                                                    d.bg(rgba(accent))
-                                                        .hover(|d| d.bg(rgba(accent & 0xFFFFFFDD)))
-                                                })
-                                                .when(!is_primary, |d| {
-                                                    d.bg(rgba(0x3F3F46FF))
-                                                        .hover(|d| d.bg(rgba(0x52525BFF)))
-                                                })
-                                                .child(
-                                                    div()
-                                                        .text_xs()
-                                                        .when(is_primary, |d| d.text_color(rgba(0xFFFFFFFF)))
-                                                        .when(!is_primary, |d| d.text_color(rgba(0xE4E4E7FF)))
-                                                        .child(label),
-                                                )
-                                        })),
-                                )
+                                d.child(div().mt(px(8.0)).flex().gap(px(8.0)).children(
+                                    actions.iter().map(|action| {
+                                        let action_id = action.id.clone();
+                                        let label = action.label.clone();
+                                        let is_primary = action.primary;
+                                        div()
+                                            .id(SharedString::from(format!("action-{}", action_id)))
+                                            .px(px(10.0))
+                                            .py(px(4.0))
+                                            .rounded(px(4.0))
+                                            .cursor_pointer()
+                                            .when(is_primary, |d| {
+                                                d.bg(rgba(accent))
+                                                    .hover(|d| d.bg(rgba(accent & 0xFFFFFFDD)))
+                                            })
+                                            .when(!is_primary, |d| {
+                                                d.bg(rgba(0x3F3F46FF))
+                                                    .hover(|d| d.bg(rgba(0x52525BFF)))
+                                            })
+                                            .child(
+                                                div()
+                                                    .text_xs()
+                                                    .when(is_primary, |d| {
+                                                        d.text_color(rgba(0xFFFFFFFF))
+                                                    })
+                                                    .when(!is_primary, |d| {
+                                                        d.text_color(rgba(0xE4E4E7FF))
+                                                    })
+                                                    .child(label),
+                                            )
+                                    }),
+                                ))
                             }),
                     )
                     // Dismiss button
@@ -376,12 +365,7 @@ impl NotificationManager {
                                 .rounded(px(4.0))
                                 .cursor_pointer()
                                 .hover(|d| d.bg(rgba(0x3F3F46FF)))
-                                .child(
-                                    div()
-                                        .text_xs()
-                                        .text_color(rgba(0x71717AFF))
-                                        .child("x"),
-                                ),
+                                .child(div().text_xs().text_color(rgba(0x71717AFF)).child("x")),
                         )
                     }),
             )
@@ -516,12 +500,7 @@ impl Render for StatusBar {
                                 .flex()
                                 .items_center()
                                 .gap(px(4.0))
-                                .child(
-                                    div()
-                                        .size(px(6.0))
-                                        .rounded_full()
-                                        .bg(rgba(0xF59E0BFF)),
-                                )
+                                .child(div().size(px(6.0)).rounded_full().bg(rgba(0xF59E0BFF)))
                                 .child(
                                     div()
                                         .text_xs()
@@ -537,12 +516,7 @@ impl Render for StatusBar {
                                 .flex()
                                 .items_center()
                                 .gap(px(4.0))
-                                .child(
-                                    div()
-                                        .text_xs()
-                                        .text_color(rgba(0x3B82F6FF))
-                                        .child("sync"),
-                                )
+                                .child(div().text_xs().text_color(rgba(0x3B82F6FF)).child("sync"))
                                 .child(
                                     div()
                                         .text_xs()
@@ -558,12 +532,7 @@ impl Render for StatusBar {
                                 .flex()
                                 .items_center()
                                 .gap(px(4.0))
-                                .child(
-                                    div()
-                                        .text_xs()
-                                        .text_color(rgba(0xA855F7FF))
-                                        .child("ai"),
-                                )
+                                .child(div().text_xs().text_color(rgba(0xA855F7FF)).child("ai"))
                                 .child(
                                     div()
                                         .text_xs()
@@ -596,12 +565,7 @@ impl Render for StatusBar {
                                 .child(format!("{} unread", self.unread_count)),
                         )
                     })
-                    .child(
-                        div()
-                            .text_xs()
-                            .text_color(rgba(0x52525BFF))
-                            .child("margin"),
-                    ),
+                    .child(div().text_xs().text_color(rgba(0x52525BFF)).child("margin")),
             )
     }
 }
@@ -612,8 +576,14 @@ mod tests {
 
     #[test]
     fn notification_type_colors() {
-        assert_ne!(NotificationType::Success.bg_color(), NotificationType::Error.bg_color());
-        assert_ne!(NotificationType::Success.accent_color(), NotificationType::Error.accent_color());
+        assert_ne!(
+            NotificationType::Success.bg_color(),
+            NotificationType::Error.bg_color()
+        );
+        assert_ne!(
+            NotificationType::Success.accent_color(),
+            NotificationType::Error.accent_color()
+        );
     }
 
     #[test]
@@ -631,8 +601,8 @@ mod tests {
 
     #[test]
     fn notification_expiry() {
-        let notif = Notification::info("test", "Test")
-            .with_duration(Some(Duration::from_millis(1)));
+        let notif =
+            Notification::info("test", "Test").with_duration(Some(Duration::from_millis(1)));
 
         // Wait a bit
         std::thread::sleep(Duration::from_millis(10));
@@ -642,8 +612,7 @@ mod tests {
 
     #[test]
     fn notification_no_expiry() {
-        let notif = Notification::error("test", "Error")
-            .with_duration(None);
+        let notif = Notification::error("test", "Error").with_duration(None);
 
         assert!(!notif.is_expired());
     }

@@ -300,12 +300,7 @@ impl StatsDashboard {
             .flex()
             .flex_col()
             .gap(px(8.0))
-            .child(
-                div()
-                    .text_xs()
-                    .text_color(rgba(0x71717AFF))
-                    .child(title),
-            )
+            .child(div().text_xs().text_color(rgba(0x71717AFF)).child(title))
             .child(
                 div()
                     .text_2xl()
@@ -315,12 +310,7 @@ impl StatsDashboard {
                     .child(value),
             )
             .when_some(subtitle.map(|s| s.to_string()), |d, s| {
-                d.child(
-                    div()
-                        .text_xs()
-                        .text_color(rgba(0x52525BFF))
-                        .child(s),
-                )
+                d.child(div().text_xs().text_color(rgba(0x52525BFF)).child(s))
             })
     }
 
@@ -337,7 +327,9 @@ impl StatsDashboard {
                     .rounded(px(6.0))
                     .cursor_pointer()
                     .when(is_selected, |d| d.bg(rgba(0x3B82F6FF)))
-                    .when(!is_selected, |d| d.bg(rgba(0x27272AFF)).hover(|d| d.bg(rgba(0x3F3F46FF))))
+                    .when(!is_selected, |d| {
+                        d.bg(rgba(0x27272AFF)).hover(|d| d.bg(rgba(0x3F3F46FF)))
+                    })
                     .child(
                         div()
                             .text_xs()
@@ -364,18 +356,23 @@ impl StatsDashboard {
                 div()
                     .flex()
                     .gap(px(12.0))
-                    .child(self.render_stat_card(
-                        "Received",
-                        &format!("{}", self.email_stats.received),
-                        self.email_stats.received_change.map(|c| {
-                            if c >= 0.0 {
-                                format!("+{:.0}% vs prev", c)
-                            } else {
-                                format!("{:.0}% vs prev", c)
-                            }
-                        }).as_deref(),
-                        true,
-                    ))
+                    .child(
+                        self.render_stat_card(
+                            "Received",
+                            &format!("{}", self.email_stats.received),
+                            self.email_stats
+                                .received_change
+                                .map(|c| {
+                                    if c >= 0.0 {
+                                        format!("+{:.0}% vs prev", c)
+                                    } else {
+                                        format!("{:.0}% vs prev", c)
+                                    }
+                                })
+                                .as_deref(),
+                            true,
+                        ),
+                    )
                     .child(self.render_stat_card(
                         "Sent",
                         &format!("{}", self.email_stats.sent),
@@ -441,7 +438,9 @@ impl StatsDashboard {
     }
 
     fn render_ai_section(&self, _cx: &mut Context<Self>) -> impl IntoElement {
-        let acceptance = self.ai_stats.acceptance_rate()
+        let acceptance = self
+            .ai_stats
+            .acceptance_rate()
             .map(|r| format!("{:.0}% accepted", r));
 
         div()
@@ -515,42 +514,49 @@ impl StatsDashboard {
                         )
                     })
                     .when(!self.top_correspondents.is_empty(), |d| {
-                        d.children(self.top_correspondents.iter().take(5).enumerate().map(|(i, c)| {
-                            let display = c.display().to_string();
-                            let count = c.email_count;
-                            div()
-                                .flex()
-                                .items_center()
-                                .gap(px(8.0))
-                                .child(
-                                    div()
-                                        .text_xs()
-                                        .text_color(rgba(0x52525BFF))
-                                        .w(px(16.0))
-                                        .child(format!("{}.", i + 1)),
-                                )
-                                .child(
-                                    div()
-                                        .flex_1()
-                                        .text_sm()
-                                        .text_color(rgba(0xE4E4E7FF))
-                                        .truncate()
-                                        .child(display),
-                                )
-                                .child(
-                                    div()
-                                        .text_xs()
-                                        .text_color(rgba(0x71717AFF))
-                                        .child(format!("{} emails", count)),
-                                )
-                        }))
+                        d.children(self.top_correspondents.iter().take(5).enumerate().map(
+                            |(i, c)| {
+                                let display = c.display().to_string();
+                                let count = c.email_count;
+                                div()
+                                    .flex()
+                                    .items_center()
+                                    .gap(px(8.0))
+                                    .child(
+                                        div()
+                                            .text_xs()
+                                            .text_color(rgba(0x52525BFF))
+                                            .w(px(16.0))
+                                            .child(format!("{}.", i + 1)),
+                                    )
+                                    .child(
+                                        div()
+                                            .flex_1()
+                                            .text_sm()
+                                            .text_color(rgba(0xE4E4E7FF))
+                                            .truncate()
+                                            .child(display),
+                                    )
+                                    .child(
+                                        div()
+                                            .text_xs()
+                                            .text_color(rgba(0x71717AFF))
+                                            .child(format!("{} emails", count)),
+                                    )
+                            },
+                        ))
                     }),
             )
     }
 
     fn render_hours_section(&self, _cx: &mut Context<Self>) -> impl IntoElement {
         // Find max for scaling
-        let max_count = self.busiest_hours.iter().map(|h| h.count).max().unwrap_or(1);
+        let max_count = self
+            .busiest_hours
+            .iter()
+            .map(|h| h.count)
+            .max()
+            .unwrap_or(1);
 
         div()
             .flex()
@@ -663,17 +669,13 @@ impl Render for StatsDashboard {
                             .border_b_1()
                             .border_color(rgba(0x27272AFF))
                             .child(
-                                div()
-                                    .flex()
-                                    .items_center()
-                                    .gap(px(12.0))
-                                    .child(
-                                        div()
-                                            .text_lg()
-                                            .font_weight(gpui::FontWeight::SEMIBOLD)
-                                            .text_color(rgba(0xF4F4F5FF))
-                                            .child("Usage Statistics"),
-                                    ),
+                                div().flex().items_center().gap(px(12.0)).child(
+                                    div()
+                                        .text_lg()
+                                        .font_weight(gpui::FontWeight::SEMIBOLD)
+                                        .text_color(rgba(0xF4F4F5FF))
+                                        .child("Usage Statistics"),
+                                ),
                             )
                             .child(
                                 div()
@@ -721,11 +723,7 @@ impl Render for StatsDashboard {
                                             .flex_1()
                                             .child(self.render_correspondents_section(cx)),
                                     )
-                                    .child(
-                                        div()
-                                            .flex_1()
-                                            .child(self.render_hours_section(cx)),
-                                    ),
+                                    .child(div().flex_1().child(self.render_hours_section(cx))),
                             ),
                     )
                     // Footer

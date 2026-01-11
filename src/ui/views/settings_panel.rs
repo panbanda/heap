@@ -443,12 +443,7 @@ impl SettingsPanel {
                             .child(setting.label.clone()),
                     )
                     .when_some(setting.description.clone(), |d, desc| {
-                        d.child(
-                            div()
-                                .text_xs()
-                                .text_color(rgba(0x71717AFF))
-                                .child(desc),
-                        )
+                        d.child(div().text_xs().text_color(rgba(0x71717AFF)).child(desc))
                     }),
             )
             .child(
@@ -514,12 +509,7 @@ impl SettingsPanel {
                             .text_color(rgba(0xE4E4E7FF))
                             .child(selected_label),
                     )
-                    .child(
-                        div()
-                            .text_xs()
-                            .text_color(rgba(0x71717AFF))
-                            .child("v"),
-                    ),
+                    .child(div().text_xs().text_color(rgba(0x71717AFF)).child("v")),
             )
     }
 
@@ -573,12 +563,10 @@ impl SettingsPanel {
 
     fn render_content(&self, cx: &mut Context<Self>) -> impl IntoElement {
         match self.current_tab {
-            SettingsTab::Keybindings => {
-                div()
-                    .flex_1()
-                    .overflow_hidden()
-                    .child(self.render_keybindings_content(cx))
-            }
+            SettingsTab::Keybindings => div()
+                .flex_1()
+                .overflow_hidden()
+                .child(self.render_keybindings_content(cx)),
             _ => {
                 let toggles = self.current_toggles();
                 let selects = self.current_selects();

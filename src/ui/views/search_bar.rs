@@ -228,7 +228,8 @@ impl SearchBar {
 
     /// Accepts the selected suggestion.
     pub fn accept_suggestion(&mut self) -> Option<String> {
-        let suggestion = self.selected_suggestion
+        let suggestion = self
+            .selected_suggestion
             .and_then(|i| self.suggestions.get(i))
             .map(|s| s.text.clone())?;
         self.query = suggestion.clone();
@@ -308,7 +309,9 @@ impl SearchBar {
                     .rounded(px(4.0))
                     .cursor_pointer()
                     .when(is_selected, |d| d.bg(rgba(0x3B82F6FF)))
-                    .when(!is_selected, |d| d.bg(rgba(0x27272AFF)).hover(|d| d.bg(rgba(0x3F3F46FF))))
+                    .when(!is_selected, |d| {
+                        d.bg(rgba(0x27272AFF)).hover(|d| d.bg(rgba(0x3F3F46FF)))
+                    })
                     .child(
                         div()
                             .text_xs()
@@ -334,12 +337,7 @@ impl SearchBar {
             .cursor_pointer()
             .when(is_selected, |d| d.bg(rgba(0x3B82F620)))
             .when(!is_selected, |d| d.hover(|d| d.bg(rgba(0xFFFFFF08))))
-            .child(
-                div()
-                    .text_sm()
-                    .text_color(rgba(0x52525BFF))
-                    .child(icon),
-            )
+            .child(div().text_sm().text_color(rgba(0x52525BFF)).child(icon))
             .child(
                 div()
                     .flex_1()
@@ -395,12 +393,7 @@ impl SearchBar {
             .gap(px(8.0))
             .cursor_pointer()
             .hover(|d| d.bg(rgba(0x3F3F46FF)))
-            .child(
-                div()
-                    .text_sm()
-                    .text_color(rgba(0x52525BFF))
-                    .child("search"),
-            )
+            .child(div().text_sm().text_color(rgba(0x52525BFF)).child("search"))
             .child(
                 div()
                     .flex_1()
@@ -464,9 +457,7 @@ impl SearchBar {
                                     .text_base()
                                     .text_color(rgba(0xE4E4E7FF))
                                     .child(if self.query.is_empty() {
-                                        div()
-                                            .text_color(rgba(0x52525BFF))
-                                            .child("Search emails...")
+                                        div().text_color(rgba(0x52525BFF)).child("Search emails...")
                                     } else {
                                         div().child(self.query.clone())
                                     }),
@@ -481,12 +472,7 @@ impl SearchBar {
                                     .when(self.show_operators, |d| d.bg(rgba(0x3B82F620)))
                                     .when(!self.show_operators, |d| d.bg(rgba(0x27272AFF)))
                                     .hover(|d| d.bg(rgba(0x3F3F46FF)))
-                                    .child(
-                                        div()
-                                            .text_xs()
-                                            .text_color(rgba(0x71717AFF))
-                                            .child("?"),
-                                    ),
+                                    .child(div().text_xs().text_color(rgba(0x71717AFF)).child("?")),
                             )
                             .child(
                                 div()

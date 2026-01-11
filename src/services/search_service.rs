@@ -415,8 +415,10 @@ impl<S: SearchStorage> SearchService<S> {
         // Fetch metadata for all emails
         let ids: Vec<EmailId> = email_ids.into_iter().collect();
         let metadata = self.storage.get_email_metadata(&ids).await?;
-        let metadata_map: std::collections::HashMap<EmailId, EmailMetadata> =
-            metadata.into_iter().map(|m| (m.email_id.clone(), m)).collect();
+        let metadata_map: std::collections::HashMap<EmailId, EmailMetadata> = metadata
+            .into_iter()
+            .map(|m| (m.email_id.clone(), m))
+            .collect();
 
         // Build scored results
         let mut results: Vec<SearchHit> = Vec::new();
@@ -447,8 +449,8 @@ impl<S: SearchStorage> SearchService<S> {
             };
 
             // Calculate combined score
-            let combined_score = (fts_score * settings.fts_weight)
-                + (semantic_score * settings.semantic_weight);
+            let combined_score =
+                (fts_score * settings.fts_weight) + (semantic_score * settings.semantic_weight);
 
             if combined_score < settings.min_score {
                 continue;
@@ -482,7 +484,11 @@ impl<S: SearchStorage> SearchService<S> {
         }
 
         // Sort by score descending
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         Ok(results)
     }

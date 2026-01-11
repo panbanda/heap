@@ -120,11 +120,7 @@ impl Default for ActionState {
 
 impl ActionState {
     /// Creates state for a folder move.
-    pub fn folder_move(
-        thread_ids: Vec<ThreadId>,
-        original: LabelId,
-        target: LabelId,
-    ) -> Self {
+    pub fn folder_move(thread_ids: Vec<ThreadId>, original: LabelId, target: LabelId) -> Self {
         Self {
             thread_ids,
             original_folder: Some(original),
@@ -172,7 +168,11 @@ impl ActionState {
     }
 
     /// Creates state for label changes.
-    pub fn labels(thread_ids: Vec<ThreadId>, original: Vec<LabelId>, affected: Vec<LabelId>) -> Self {
+    pub fn labels(
+        thread_ids: Vec<ThreadId>,
+        original: Vec<LabelId>,
+        affected: Vec<LabelId>,
+    ) -> Self {
         Self {
             thread_ids,
             original_labels: original,
@@ -204,11 +204,7 @@ impl UndoableAction {
     pub fn new(action_type: ActionType, before_state: ActionState) -> Self {
         let item_count = before_state.thread_ids.len();
         let desc = Self::format_description(&action_type, item_count);
-        let id = format!(
-            "{:?}-{}",
-            action_type,
-            Utc::now().timestamp_millis()
-        );
+        let id = format!("{:?}-{}", action_type, Utc::now().timestamp_millis());
 
         Self {
             id,
@@ -399,11 +395,7 @@ impl UndoService {
 
     /// Returns recent actions (for history view).
     pub fn recent_actions(&self, limit: usize) -> Vec<&UndoableAction> {
-        self.undo_stack
-            .iter()
-            .rev()
-            .take(limit)
-            .collect()
+        self.undo_stack.iter().rev().take(limit).collect()
     }
 
     /// Clears all history.
@@ -557,10 +549,7 @@ mod tests {
     fn undo_service_basic() {
         let mut service = UndoService::new();
 
-        let state = ActionState::archive(
-            vec![make_thread_id("t1")],
-            make_label_id("inbox"),
-        );
+        let state = ActionState::archive(vec![make_thread_id("t1")], make_label_id("inbox"));
         service.record(UndoableAction::new(ActionType::Archive, state));
 
         assert!(service.can_undo());

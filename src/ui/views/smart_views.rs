@@ -78,13 +78,13 @@ impl SmartViewType {
     /// Returns the accent color for this view type.
     pub fn color(&self) -> u32 {
         match self {
-            SmartViewType::NeedsReply => 0xEF4444FF, // Red
-            SmartViewType::WaitingFor => 0xF59E0BFF, // Amber
-            SmartViewType::Newsletters => 0x8B5CF6FF, // Purple
-            SmartViewType::Vip => 0xEAB308FF,        // Yellow
-            SmartViewType::FollowUp => 0x3B82F6FF,   // Blue
+            SmartViewType::NeedsReply => 0xEF4444FF,     // Red
+            SmartViewType::WaitingFor => 0xF59E0BFF,     // Amber
+            SmartViewType::Newsletters => 0x8B5CF6FF,    // Purple
+            SmartViewType::Vip => 0xEAB308FF,            // Yellow
+            SmartViewType::FollowUp => 0x3B82F6FF,       // Blue
             SmartViewType::RecentlyViewed => 0x71717AFF, // Gray
-            SmartViewType::Attachments => 0x22C55EFF, // Green
+            SmartViewType::Attachments => 0x22C55EFF,    // Green
         }
     }
 
@@ -213,7 +213,11 @@ impl SmartViewMatch {
     }
 
     /// Creates a manually assigned match.
-    pub fn manual(thread_id: ThreadId, view_type: SmartViewType, reason: impl Into<String>) -> Self {
+    pub fn manual(
+        thread_id: ThreadId,
+        view_type: SmartViewType,
+        reason: impl Into<String>,
+    ) -> Self {
         Self {
             thread_id,
             view_type,
@@ -334,7 +338,10 @@ impl SmartViewsPanel {
         let shortcut = entry.view_type.shortcut();
 
         div()
-            .id(SharedString::from(format!("smart-view-{:?}", entry.view_type)))
+            .id(SharedString::from(format!(
+                "smart-view-{:?}",
+                entry.view_type
+            )))
             .px(px(8.0))
             .py(px(6.0))
             .mx(px(4.0))
@@ -352,12 +359,7 @@ impl SmartViewsPanel {
                     .flex()
                     .items_center()
                     .justify_center()
-                    .child(
-                        div()
-                            .text_xs()
-                            .text_color(rgba(color))
-                            .child(icon),
-                    ),
+                    .child(div().text_xs().text_color(rgba(color)).child(icon)),
             )
             // Name
             .child(
@@ -370,12 +372,7 @@ impl SmartViewsPanel {
             )
             // Shortcut hint
             .when_some(shortcut, |d, sc| {
-                d.child(
-                    div()
-                        .text_xs()
-                        .text_color(rgba(0x52525BFF))
-                        .child(sc),
-                )
+                d.child(div().text_xs().text_color(rgba(0x52525BFF)).child(sc))
             })
             // Count badge
             .when(count > 0, |d| {
@@ -443,11 +440,7 @@ impl Render for SmartViewsPanel {
                     div()
                         .flex()
                         .flex_col()
-                        .children(
-                            self.entries
-                                .iter()
-                                .map(|entry| self.render_entry(entry)),
-                        ),
+                        .children(self.entries.iter().map(|entry| self.render_entry(entry))),
                 )
             })
     }

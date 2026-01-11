@@ -259,7 +259,12 @@ impl ScreenerQueue {
         let is_selected = self.selected_index == Some(index);
         let display_name = entry.display_name().to_string();
         let email = entry.email.clone();
-        let first_char = email.chars().next().unwrap_or('?').to_uppercase().to_string();
+        let first_char = email
+            .chars()
+            .next()
+            .unwrap_or('?')
+            .to_uppercase()
+            .to_string();
         let badge = entry.sender_type_badge();
         let subject = entry.first_email_subject.clone();
         let preview = entry.first_email_preview.clone();
@@ -369,12 +374,7 @@ impl ScreenerQueue {
                         .rounded(px(4.0))
                         .flex()
                         .gap(px(8.0))
-                        .child(
-                            div()
-                                .text_xs()
-                                .text_color(rgba(0x60A5FAFF))
-                                .child("AI:"),
-                        )
+                        .child(div().text_xs().text_color(rgba(0x60A5FAFF)).child("AI:"))
                         .child(
                             div()
                                 .flex_1()
@@ -424,10 +424,7 @@ impl ScreenerQueue {
                                 .bg(rgba(0xEF444420))
                                 .hover(|d| d.bg(rgba(0xEF444440)))
                                 .child(
-                                    div()
-                                        .text_sm()
-                                        .text_color(rgba(0xEF4444FF))
-                                        .child("Reject"),
+                                    div().text_sm().text_color(rgba(0xEF4444FF)).child("Reject"),
                                 ),
                         )
                         .child(
@@ -460,12 +457,7 @@ impl ScreenerQueue {
             .items_center()
             .justify_center()
             .gap(px(16.0))
-            .child(
-                div()
-                    .text_2xl()
-                    .text_color(rgba(0x52525BFF))
-                    .child("inbox"),
-            )
+            .child(div().text_2xl().text_color(rgba(0x52525BFF)).child("inbox"))
             .child(
                 div()
                     .text_lg()
@@ -557,12 +549,7 @@ impl Render for ScreenerQueue {
                                     .rounded(px(6.0))
                                     .cursor_pointer()
                                     .hover(|d| d.bg(rgba(0x27272AFF)))
-                                    .child(
-                                        div()
-                                            .text_lg()
-                                            .text_color(rgba(0x71717AFF))
-                                            .child("x"),
-                                    ),
+                                    .child(div().text_lg().text_color(rgba(0x71717AFF)).child("x")),
                             ),
                     )
                     // Toolbar
@@ -628,15 +615,12 @@ impl Render for ScreenerQueue {
                     .child(if count == 0 {
                         div().flex_1().child(self.render_empty())
                     } else {
-                        div()
-                            .flex_1()
-                            .overflow_hidden()
-                            .children(
-                                self.entries
-                                    .iter()
-                                    .enumerate()
-                                    .map(|(i, entry)| self.render_entry(entry, i)),
-                            )
+                        div().flex_1().overflow_hidden().children(
+                            self.entries
+                                .iter()
+                                .enumerate()
+                                .map(|(i, entry)| self.render_entry(entry, i)),
+                        )
                     })
                     // Footer hints
                     .child(
@@ -726,10 +710,7 @@ impl Render for ScreenerQueue {
                                             .child("Esc"),
                                     )
                                     .child(
-                                        div()
-                                            .text_xs()
-                                            .text_color(rgba(0x52525BFF))
-                                            .child("close"),
+                                        div().text_xs().text_color(rgba(0x52525BFF)).child("close"),
                                     ),
                             ),
                     ),

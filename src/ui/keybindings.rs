@@ -18,46 +18,162 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "lowercase")]
 pub enum Key {
     // Letters
-    A, B, C, D, E, F, G, H, I, J, K, L, M,
-    N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
+    I,
+    J,
+    K,
+    L,
+    M,
+    N,
+    O,
+    P,
+    Q,
+    R,
+    S,
+    T,
+    U,
+    V,
+    W,
+    X,
+    Y,
+    Z,
     // Numbers
-    Num0, Num1, Num2, Num3, Num4, Num5, Num6, Num7, Num8, Num9,
+    Num0,
+    Num1,
+    Num2,
+    Num3,
+    Num4,
+    Num5,
+    Num6,
+    Num7,
+    Num8,
+    Num9,
     // Function keys
-    F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
+    F1,
+    F2,
+    F3,
+    F4,
+    F5,
+    F6,
+    F7,
+    F8,
+    F9,
+    F10,
+    F11,
+    F12,
     // Navigation
-    Up, Down, Left, Right, Home, End, PageUp, PageDown,
+    Up,
+    Down,
+    Left,
+    Right,
+    Home,
+    End,
+    PageUp,
+    PageDown,
     // Editing
-    Backspace, Delete, Tab, Enter, Escape, Space,
+    Backspace,
+    Delete,
+    Tab,
+    Enter,
+    Escape,
+    Space,
     // Punctuation
-    Comma, Period, Slash, Backslash, Semicolon, Quote,
-    BracketLeft, BracketRight, Minus, Equals, Grave,
+    Comma,
+    Period,
+    Slash,
+    Backslash,
+    Semicolon,
+    Quote,
+    BracketLeft,
+    BracketRight,
+    Minus,
+    Equals,
+    Grave,
 }
 
 impl fmt::Display for Key {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Key::A => "A", Key::B => "B", Key::C => "C", Key::D => "D",
-            Key::E => "E", Key::F => "F", Key::G => "G", Key::H => "H",
-            Key::I => "I", Key::J => "J", Key::K => "K", Key::L => "L",
-            Key::M => "M", Key::N => "N", Key::O => "O", Key::P => "P",
-            Key::Q => "Q", Key::R => "R", Key::S => "S", Key::T => "T",
-            Key::U => "U", Key::V => "V", Key::W => "W", Key::X => "X",
-            Key::Y => "Y", Key::Z => "Z",
-            Key::Num0 => "0", Key::Num1 => "1", Key::Num2 => "2",
-            Key::Num3 => "3", Key::Num4 => "4", Key::Num5 => "5",
-            Key::Num6 => "6", Key::Num7 => "7", Key::Num8 => "8",
+            Key::A => "A",
+            Key::B => "B",
+            Key::C => "C",
+            Key::D => "D",
+            Key::E => "E",
+            Key::F => "F",
+            Key::G => "G",
+            Key::H => "H",
+            Key::I => "I",
+            Key::J => "J",
+            Key::K => "K",
+            Key::L => "L",
+            Key::M => "M",
+            Key::N => "N",
+            Key::O => "O",
+            Key::P => "P",
+            Key::Q => "Q",
+            Key::R => "R",
+            Key::S => "S",
+            Key::T => "T",
+            Key::U => "U",
+            Key::V => "V",
+            Key::W => "W",
+            Key::X => "X",
+            Key::Y => "Y",
+            Key::Z => "Z",
+            Key::Num0 => "0",
+            Key::Num1 => "1",
+            Key::Num2 => "2",
+            Key::Num3 => "3",
+            Key::Num4 => "4",
+            Key::Num5 => "5",
+            Key::Num6 => "6",
+            Key::Num7 => "7",
+            Key::Num8 => "8",
             Key::Num9 => "9",
-            Key::F1 => "F1", Key::F2 => "F2", Key::F3 => "F3", Key::F4 => "F4",
-            Key::F5 => "F5", Key::F6 => "F6", Key::F7 => "F7", Key::F8 => "F8",
-            Key::F9 => "F9", Key::F10 => "F10", Key::F11 => "F11", Key::F12 => "F12",
-            Key::Up => "Up", Key::Down => "Down", Key::Left => "Left", Key::Right => "Right",
-            Key::Home => "Home", Key::End => "End", Key::PageUp => "PageUp", Key::PageDown => "PageDown",
-            Key::Backspace => "Backspace", Key::Delete => "Delete", Key::Tab => "Tab",
-            Key::Enter => "Enter", Key::Escape => "Esc", Key::Space => "Space",
-            Key::Comma => ",", Key::Period => ".", Key::Slash => "/",
-            Key::Backslash => "\\", Key::Semicolon => ";", Key::Quote => "'",
-            Key::BracketLeft => "[", Key::BracketRight => "]",
-            Key::Minus => "-", Key::Equals => "=", Key::Grave => "`",
+            Key::F1 => "F1",
+            Key::F2 => "F2",
+            Key::F3 => "F3",
+            Key::F4 => "F4",
+            Key::F5 => "F5",
+            Key::F6 => "F6",
+            Key::F7 => "F7",
+            Key::F8 => "F8",
+            Key::F9 => "F9",
+            Key::F10 => "F10",
+            Key::F11 => "F11",
+            Key::F12 => "F12",
+            Key::Up => "Up",
+            Key::Down => "Down",
+            Key::Left => "Left",
+            Key::Right => "Right",
+            Key::Home => "Home",
+            Key::End => "End",
+            Key::PageUp => "PageUp",
+            Key::PageDown => "PageDown",
+            Key::Backspace => "Backspace",
+            Key::Delete => "Delete",
+            Key::Tab => "Tab",
+            Key::Enter => "Enter",
+            Key::Escape => "Esc",
+            Key::Space => "Space",
+            Key::Comma => ",",
+            Key::Period => ".",
+            Key::Slash => "/",
+            Key::Backslash => "\\",
+            Key::Semicolon => ";",
+            Key::Quote => "'",
+            Key::BracketLeft => "[",
+            Key::BracketRight => "]",
+            Key::Minus => "-",
+            Key::Equals => "=",
+            Key::Grave => "`",
         };
         write!(f, "{}", s)
     }
@@ -95,22 +211,34 @@ impl Modifiers {
 
     /// Command modifier only.
     pub fn cmd() -> Self {
-        Self { cmd: true, ..Default::default() }
+        Self {
+            cmd: true,
+            ..Default::default()
+        }
     }
 
     /// Control modifier only.
     pub fn ctrl() -> Self {
-        Self { ctrl: true, ..Default::default() }
+        Self {
+            ctrl: true,
+            ..Default::default()
+        }
     }
 
     /// Shift modifier only.
     pub fn shift() -> Self {
-        Self { shift: true, ..Default::default() }
+        Self {
+            shift: true,
+            ..Default::default()
+        }
     }
 
     /// Alt modifier only.
     pub fn alt() -> Self {
-        Self { alt: true, ..Default::default() }
+        Self {
+            alt: true,
+            ..Default::default()
+        }
     }
 
     /// Returns true if any modifier is pressed.
@@ -122,10 +250,18 @@ impl Modifiers {
 impl fmt::Display for Modifiers {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut parts = Vec::new();
-        if self.cmd { parts.push("Cmd"); }
-        if self.ctrl { parts.push("Ctrl"); }
-        if self.alt { parts.push("Alt"); }
-        if self.shift { parts.push("Shift"); }
+        if self.cmd {
+            parts.push("Cmd");
+        }
+        if self.ctrl {
+            parts.push("Ctrl");
+        }
+        if self.alt {
+            parts.push("Alt");
+        }
+        if self.shift {
+            parts.push("Shift");
+        }
         write!(f, "{}", parts.join("+"))
     }
 }
@@ -147,22 +283,34 @@ impl Keystroke {
 
     /// Creates a keystroke with no modifiers.
     pub fn key(key: Key) -> Self {
-        Self { key, modifiers: Modifiers::none() }
+        Self {
+            key,
+            modifiers: Modifiers::none(),
+        }
     }
 
     /// Creates a Cmd+key keystroke.
     pub fn cmd(key: Key) -> Self {
-        Self { key, modifiers: Modifiers::cmd() }
+        Self {
+            key,
+            modifiers: Modifiers::cmd(),
+        }
     }
 
     /// Creates a Ctrl+key keystroke.
     pub fn ctrl(key: Key) -> Self {
-        Self { key, modifiers: Modifiers::ctrl() }
+        Self {
+            key,
+            modifiers: Modifiers::ctrl(),
+        }
     }
 
     /// Creates a Shift+key keystroke.
     pub fn shift(key: Key) -> Self {
-        Self { key, modifiers: Modifiers::shift() }
+        Self {
+            key,
+            modifiers: Modifiers::shift(),
+        }
     }
 }
 
@@ -186,7 +334,9 @@ pub struct KeyBinding {
 impl KeyBinding {
     /// Creates a single-keystroke binding.
     pub fn single(keystroke: Keystroke) -> Self {
-        Self { sequence: vec![keystroke] }
+        Self {
+            sequence: vec![keystroke],
+        }
     }
 
     /// Creates a multi-keystroke sequence binding.
@@ -254,7 +404,11 @@ pub struct Command {
 
 impl Command {
     /// Creates a new command.
-    pub fn new(id: impl Into<String>, name: impl Into<String>, category: impl Into<String>) -> Self {
+    pub fn new(
+        id: impl Into<String>,
+        name: impl Into<String>,
+        category: impl Into<String>,
+    ) -> Self {
         Self {
             id: id.into(),
             name: name.into(),
@@ -322,62 +476,196 @@ impl KeybindingManager {
     /// Registers the default keybindings.
     fn register_defaults(&mut self) {
         // Global bindings
-        self.bind(KeyContext::Global, KeyBinding::single(Keystroke::key(Key::C)), "compose");
-        self.bind(KeyContext::Global, KeyBinding::single(Keystroke::key(Key::Slash)), "search");
-        self.bind(KeyContext::Global, KeyBinding::single(Keystroke::cmd(Key::K)), "command_palette");
-        self.bind(KeyContext::Global, KeyBinding::single(Keystroke::cmd(Key::Comma)), "settings");
-        self.bind(KeyContext::Global, KeyBinding::single(Keystroke::key(Key::Escape)), "cancel");
+        self.bind(
+            KeyContext::Global,
+            KeyBinding::single(Keystroke::key(Key::C)),
+            "compose",
+        );
+        self.bind(
+            KeyContext::Global,
+            KeyBinding::single(Keystroke::key(Key::Slash)),
+            "search",
+        );
+        self.bind(
+            KeyContext::Global,
+            KeyBinding::single(Keystroke::cmd(Key::K)),
+            "command_palette",
+        );
+        self.bind(
+            KeyContext::Global,
+            KeyBinding::single(Keystroke::cmd(Key::Comma)),
+            "settings",
+        );
+        self.bind(
+            KeyContext::Global,
+            KeyBinding::single(Keystroke::key(Key::Escape)),
+            "cancel",
+        );
 
         // Gmail-style navigation sequences
-        self.bind(KeyContext::Global, KeyBinding::sequence(vec![
-            Keystroke::key(Key::G), Keystroke::key(Key::I)
-        ]), "go_inbox");
-        self.bind(KeyContext::Global, KeyBinding::sequence(vec![
-            Keystroke::key(Key::G), Keystroke::key(Key::S)
-        ]), "go_starred");
-        self.bind(KeyContext::Global, KeyBinding::sequence(vec![
-            Keystroke::key(Key::G), Keystroke::key(Key::D)
-        ]), "go_drafts");
-        self.bind(KeyContext::Global, KeyBinding::sequence(vec![
-            Keystroke::key(Key::G), Keystroke::key(Key::T)
-        ]), "go_sent");
-        self.bind(KeyContext::Global, KeyBinding::sequence(vec![
-            Keystroke::key(Key::G), Keystroke::key(Key::A)
-        ]), "go_archive");
+        self.bind(
+            KeyContext::Global,
+            KeyBinding::sequence(vec![Keystroke::key(Key::G), Keystroke::key(Key::I)]),
+            "go_inbox",
+        );
+        self.bind(
+            KeyContext::Global,
+            KeyBinding::sequence(vec![Keystroke::key(Key::G), Keystroke::key(Key::S)]),
+            "go_starred",
+        );
+        self.bind(
+            KeyContext::Global,
+            KeyBinding::sequence(vec![Keystroke::key(Key::G), Keystroke::key(Key::D)]),
+            "go_drafts",
+        );
+        self.bind(
+            KeyContext::Global,
+            KeyBinding::sequence(vec![Keystroke::key(Key::G), Keystroke::key(Key::T)]),
+            "go_sent",
+        );
+        self.bind(
+            KeyContext::Global,
+            KeyBinding::sequence(vec![Keystroke::key(Key::G), Keystroke::key(Key::A)]),
+            "go_archive",
+        );
 
         // Message list bindings
-        self.bind(KeyContext::MessageList, KeyBinding::single(Keystroke::key(Key::J)), "next_message");
-        self.bind(KeyContext::MessageList, KeyBinding::single(Keystroke::key(Key::K)), "prev_message");
-        self.bind(KeyContext::MessageList, KeyBinding::single(Keystroke::key(Key::Enter)), "open_message");
-        self.bind(KeyContext::MessageList, KeyBinding::single(Keystroke::key(Key::X)), "select_message");
-        self.bind(KeyContext::MessageList, KeyBinding::single(Keystroke::key(Key::E)), "archive");
-        self.bind(KeyContext::MessageList, KeyBinding::single(Keystroke::key(Key::S)), "star");
-        self.bind(KeyContext::MessageList, KeyBinding::single(Keystroke::shift(Key::Num3)), "trash");
-        self.bind(KeyContext::MessageList, KeyBinding::single(Keystroke::key(Key::U)), "mark_unread");
-        self.bind(KeyContext::MessageList, KeyBinding::single(Keystroke::shift(Key::U)), "mark_read");
+        self.bind(
+            KeyContext::MessageList,
+            KeyBinding::single(Keystroke::key(Key::J)),
+            "next_message",
+        );
+        self.bind(
+            KeyContext::MessageList,
+            KeyBinding::single(Keystroke::key(Key::K)),
+            "prev_message",
+        );
+        self.bind(
+            KeyContext::MessageList,
+            KeyBinding::single(Keystroke::key(Key::Enter)),
+            "open_message",
+        );
+        self.bind(
+            KeyContext::MessageList,
+            KeyBinding::single(Keystroke::key(Key::X)),
+            "select_message",
+        );
+        self.bind(
+            KeyContext::MessageList,
+            KeyBinding::single(Keystroke::key(Key::E)),
+            "archive",
+        );
+        self.bind(
+            KeyContext::MessageList,
+            KeyBinding::single(Keystroke::key(Key::S)),
+            "star",
+        );
+        self.bind(
+            KeyContext::MessageList,
+            KeyBinding::single(Keystroke::shift(Key::Num3)),
+            "trash",
+        );
+        self.bind(
+            KeyContext::MessageList,
+            KeyBinding::single(Keystroke::key(Key::U)),
+            "mark_unread",
+        );
+        self.bind(
+            KeyContext::MessageList,
+            KeyBinding::single(Keystroke::shift(Key::U)),
+            "mark_read",
+        );
 
         // Reading pane bindings
-        self.bind(KeyContext::ReadingPane, KeyBinding::single(Keystroke::key(Key::R)), "reply");
-        self.bind(KeyContext::ReadingPane, KeyBinding::single(Keystroke::shift(Key::R)), "reply_all");
-        self.bind(KeyContext::ReadingPane, KeyBinding::single(Keystroke::key(Key::F)), "forward");
-        self.bind(KeyContext::ReadingPane, KeyBinding::single(Keystroke::key(Key::J)), "next_in_thread");
-        self.bind(KeyContext::ReadingPane, KeyBinding::single(Keystroke::key(Key::K)), "prev_in_thread");
-        self.bind(KeyContext::ReadingPane, KeyBinding::single(Keystroke::cmd(Key::S)), "summarize");
-        self.bind(KeyContext::ReadingPane, KeyBinding::single(Keystroke::key(Key::N)), "expand_all");
-        self.bind(KeyContext::ReadingPane, KeyBinding::single(Keystroke::shift(Key::N)), "collapse_all");
+        self.bind(
+            KeyContext::ReadingPane,
+            KeyBinding::single(Keystroke::key(Key::R)),
+            "reply",
+        );
+        self.bind(
+            KeyContext::ReadingPane,
+            KeyBinding::single(Keystroke::shift(Key::R)),
+            "reply_all",
+        );
+        self.bind(
+            KeyContext::ReadingPane,
+            KeyBinding::single(Keystroke::key(Key::F)),
+            "forward",
+        );
+        self.bind(
+            KeyContext::ReadingPane,
+            KeyBinding::single(Keystroke::key(Key::J)),
+            "next_in_thread",
+        );
+        self.bind(
+            KeyContext::ReadingPane,
+            KeyBinding::single(Keystroke::key(Key::K)),
+            "prev_in_thread",
+        );
+        self.bind(
+            KeyContext::ReadingPane,
+            KeyBinding::single(Keystroke::cmd(Key::S)),
+            "summarize",
+        );
+        self.bind(
+            KeyContext::ReadingPane,
+            KeyBinding::single(Keystroke::key(Key::N)),
+            "expand_all",
+        );
+        self.bind(
+            KeyContext::ReadingPane,
+            KeyBinding::single(Keystroke::shift(Key::N)),
+            "collapse_all",
+        );
 
         // Composer bindings
-        self.bind(KeyContext::Composer, KeyBinding::single(Keystroke::cmd(Key::Enter)), "send");
-        self.bind(KeyContext::Composer, KeyBinding::single(Keystroke::cmd(Key::S)), "save_draft");
-        self.bind(KeyContext::Composer, KeyBinding::single(Keystroke::cmd(Key::R)), "ai_suggest");
-        self.bind(KeyContext::Composer, KeyBinding::single(Keystroke::cmd(Key::D)), "discard");
-        self.bind(KeyContext::Composer, KeyBinding::single(Keystroke::cmd(Key::Slash)), "toggle_markdown");
+        self.bind(
+            KeyContext::Composer,
+            KeyBinding::single(Keystroke::cmd(Key::Enter)),
+            "send",
+        );
+        self.bind(
+            KeyContext::Composer,
+            KeyBinding::single(Keystroke::cmd(Key::S)),
+            "save_draft",
+        );
+        self.bind(
+            KeyContext::Composer,
+            KeyBinding::single(Keystroke::cmd(Key::R)),
+            "ai_suggest",
+        );
+        self.bind(
+            KeyContext::Composer,
+            KeyBinding::single(Keystroke::cmd(Key::D)),
+            "discard",
+        );
+        self.bind(
+            KeyContext::Composer,
+            KeyBinding::single(Keystroke::cmd(Key::Slash)),
+            "toggle_markdown",
+        );
 
         // Command palette bindings
-        self.bind(KeyContext::CommandPalette, KeyBinding::single(Keystroke::key(Key::Up)), "prev_item");
-        self.bind(KeyContext::CommandPalette, KeyBinding::single(Keystroke::key(Key::Down)), "next_item");
-        self.bind(KeyContext::CommandPalette, KeyBinding::single(Keystroke::key(Key::Enter)), "execute");
-        self.bind(KeyContext::CommandPalette, KeyBinding::single(Keystroke::key(Key::Escape)), "close");
+        self.bind(
+            KeyContext::CommandPalette,
+            KeyBinding::single(Keystroke::key(Key::Up)),
+            "prev_item",
+        );
+        self.bind(
+            KeyContext::CommandPalette,
+            KeyBinding::single(Keystroke::key(Key::Down)),
+            "next_item",
+        );
+        self.bind(
+            KeyContext::CommandPalette,
+            KeyBinding::single(Keystroke::key(Key::Enter)),
+            "execute",
+        );
+        self.bind(
+            KeyContext::CommandPalette,
+            KeyBinding::single(Keystroke::key(Key::Escape)),
+            "close",
+        );
     }
 
     /// Binds a key sequence to a command.
@@ -584,10 +872,7 @@ mod tests {
         let single = KeyBinding::single(Keystroke::key(Key::C));
         assert_eq!(single.display(), "C");
 
-        let sequence = KeyBinding::sequence(vec![
-            Keystroke::key(Key::G),
-            Keystroke::key(Key::I),
-        ]);
+        let sequence = KeyBinding::sequence(vec![Keystroke::key(Key::G), Keystroke::key(Key::I)]);
         assert_eq!(sequence.display(), "G I");
     }
 
@@ -646,7 +931,11 @@ mod tests {
         assert!(conflicts.is_empty());
 
         // Add a conflicting binding
-        manager.bind(KeyContext::Global, KeyBinding::single(Keystroke::key(Key::C)), "other_command");
+        manager.bind(
+            KeyContext::Global,
+            KeyBinding::single(Keystroke::key(Key::C)),
+            "other_command",
+        );
         let conflicts = manager.detect_conflicts();
         assert_eq!(conflicts.len(), 1);
     }
