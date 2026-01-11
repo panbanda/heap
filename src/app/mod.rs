@@ -1,4 +1,19 @@
-//! Application state and lifecycle management
+//! Application state and lifecycle management.
+//!
+//! This module contains:
+//! - Application state management (state.rs)
+//! - Action definitions (inline via gpui::actions!)
+//! - Event bus for cross-component communication (events.rs)
+//! - Keybinding registration
+
+pub mod events;
+pub mod state;
+
+pub use events::{AppEvent, EventBus};
+pub use state::{
+    AiStatus, AppState, ComposerMode, ComposerState, MessageListState, ReadingPaneState,
+    SyncStatus, ViewType,
+};
 
 use anyhow::Result;
 use gpui::{actions, AppContext, Application, KeyBinding, WindowOptions};
