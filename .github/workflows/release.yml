@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get version
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          generate_release_notes: true
+
+  build-linux:
+    name: Build Linux
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libxkbcommon-dev \
+            libwayland-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libasound2-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libexpat1-dev \
+            libvulkan-dev \
+            libssl-dev \
+            pkg-config
+      - name: Build
+        run: cargo build --release
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp target/release/margin dist/margin-linux-x86_64
+          cd dist && tar -czvf margin-${{ needs.create-release.outputs.version }}-linux-x86_64.tar.gz margin-linux-x86_64
+      - name: Upload artifact
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/margin-${{ needs.create-release.outputs.version }}-linux-x86_64.tar.gz
+
+  build-macos:
+    name: Build macOS
+    needs: create-release
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        target: [x86_64-apple-darwin, aarch64-apple-darwin]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
+      - name: Package
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/margin dist/margin-${{ matrix.target }}
+          cd dist && tar -czvf margin-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz margin-${{ matrix.target }}
+      - name: Upload artifact
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/margin-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz
+
+  publish-release:
+    name: Publish Release
+    needs: [create-release, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: false

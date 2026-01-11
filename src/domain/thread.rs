@@ -111,7 +111,7 @@ mod tests {
 
     #[test]
     fn thread_with_messages() {
-        use super::super::{Attachment, EmailId, MessageId};
+        use super::super::{EmailId, MessageId};
 
         let thread = Thread {
             id: ThreadId::from("thread-1"),

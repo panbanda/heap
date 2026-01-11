@@ -19,7 +19,7 @@ use crate::domain::{AccountId, Email, EmailId};
 #[derive(Debug, Clone)]
 pub enum Change {
     /// A new email was received.
-    NewEmail(Email),
+    NewEmail(Box<Email>),
     /// An existing email was updated.
     Updated(EmailId, EmailUpdates),
     /// An email was deleted.

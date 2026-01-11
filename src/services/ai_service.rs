@@ -733,7 +733,7 @@ impl AiService {
         // Parse the response
         let parts: Vec<&str> = response.text.split('|').collect();
 
-        let likely_type = if parts.len() > 0 {
+        let likely_type = if !parts.is_empty() {
             match parts[0].trim().to_lowercase().as_str() {
                 "known_contact" => crate::domain::SenderType::KnownContact,
                 "newsletter" => crate::domain::SenderType::Newsletter,

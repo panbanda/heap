@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Top-level application settings.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Settings {
     /// Visual appearance settings.
     pub appearance: AppearanceSettings,
@@ -21,19 +21,6 @@ pub struct Settings {
     pub keybindings: KeybindingSettings,
     /// Privacy-related settings.
     pub privacy: PrivacySettings,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            appearance: AppearanceSettings::default(),
-            ai: AiSettings::default(),
-            notifications: NotificationSettings::default(),
-            sync: SyncSettings::default(),
-            keybindings: KeybindingSettings::default(),
-            privacy: PrivacySettings::default(),
-        }
-    }
 }
 
 /// Visual appearance configuration.
@@ -91,7 +78,7 @@ pub enum Density {
 }
 
 /// AI feature configuration.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AiSettings {
     /// Master switch for AI features.
     pub enabled: bool,
@@ -105,19 +92,6 @@ pub struct AiSettings {
     pub compose_settings: ComposeSettings,
     /// Semantic search settings.
     pub search_settings: SearchSettings,
-}
-
-impl Default for AiSettings {
-    fn default() -> Self {
-        Self {
-            enabled: false,
-            default_provider: String::new(),
-            providers: HashMap::new(),
-            summary_settings: SummarySettings::default(),
-            compose_settings: ComposeSettings::default(),
-            search_settings: SearchSettings::default(),
-        }
-    }
 }
 
 /// Configuration for a single AI provider.

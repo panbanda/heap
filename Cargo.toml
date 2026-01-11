@@ -70,6 +70,10 @@ directories = "5"
 lru = "0.12"
 base64 = "0.22"
 
+[features]
+default = []
+keychain-integration-tests = []
+
 [dev-dependencies]
 pretty_assertions = "1"
 tempfile = "3"
