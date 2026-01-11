@@ -2,48 +2,83 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [main]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
-
-env:
-  CARGO_TERM_COLOR: always
+  issues: write
+  pull-requests: write
 
 jobs:
-  create-release:
-    name: Create Release
+  release-please:
+    name: Release Please
     runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
-      version: ${{ steps.get_version.outputs.version }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Get version
-        id: get_version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          draft: true
-          generate_release_notes: true
 
-  build-linux:
-    name: Build Linux
-    needs: create-release
-    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - name: Install dependencies
+      - name: Release Please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive: tar.gz
+          - target: x86_64-apple-darwin
+            os: macos-14
+            archive: tar.gz
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            archive: tar.gz
+
+    runs-on: ${{ matrix.os }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add cross-compilation target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Cache cargo registry and build
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libxkbcommon-dev \
+            libxkbcommon-x11-dev \
             libwayland-dev \
+            libxcb1-dev \
+            libxcb-render0-dev \
             libxcb-shape0-dev \
             libxcb-xfixes0-dev \
             libasound2-dev \
@@ -53,49 +88,129 @@ jobs:
             libvulkan-dev \
             libssl-dev \
             pkg-config
-      - name: Build
-        run: cargo build --release
-      - name: Package
-        run: |
-          mkdir -p dist
-          cp target/release/margin dist/margin-linux-x86_64
-          cd dist && tar -czvf margin-${{ needs.create-release.outputs.version }}-linux-x86_64.tar.gz margin-linux-x86_64
-      - name: Upload artifact
-        uses: softprops/action-gh-release@v1
-        with:
-          files: dist/margin-${{ needs.create-release.outputs.version }}-linux-x86_64.tar.gz
 
-  build-macos:
-    name: Build macOS
-    needs: create-release
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        target: [x86_64-apple-darwin, aarch64-apple-darwin]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-      - uses: Swatinem/rust-cache@v2
-      - name: Build
+      - name: Build release binary
         run: cargo build --release --target ${{ matrix.target }}
-      - name: Package
+
+      - name: Create archive
+        run: |
+          TAG="${{ needs.release-please.outputs.tag_name }}"
+          VERSION="${TAG#margin-v}"
+          ARCHIVE_NAME="margin_${VERSION}_${{ matrix.target }}"
+
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/margin dist/
+          cd dist
+          tar -czvf "${ARCHIVE_NAME}.tar.gz" margin
+          shasum -a 256 "${ARCHIVE_NAME}.tar.gz" > "${ARCHIVE_NAME}.tar.gz.sha256"
+
+      - name: Upload release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ needs.release-please.outputs.tag_name }}"
+          gh release upload "$TAG" dist/*.tar.gz dist/*.sha256 --clobber
+
+  checksums:
+    name: Create Checksums
+    needs: [release-please, build]
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release artifacts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p dist
-          cp target/${{ matrix.target }}/release/margin dist/margin-${{ matrix.target }}
-          cd dist && tar -czvf margin-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz margin-${{ matrix.target }}
-      - name: Upload artifact
-        uses: softprops/action-gh-release@v1
-        with:
-          files: dist/margin-${{ needs.create-release.outputs.version }}-${{ matrix.target }}.tar.gz
+          TAG="${{ needs.release-please.outputs.tag_name }}"
+          gh release download "$TAG" --repo "${{ github.repository }}" --pattern "*.tar.gz" --dir dist
+          gh release download "$TAG" --repo "${{ github.repository }}" --pattern "*.sha256" --dir dist
 
-  publish-release:
-    name: Publish Release
-    needs: [create-release, build-linux, build-macos]
+      - name: Create consolidated checksums
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ needs.release-please.outputs.tag_name }}"
+          cat dist/*.sha256 | sort > dist/checksums.txt
+          gh release upload "$TAG" --repo "${{ github.repository }}" dist/checksums.txt --clobber
+
+  homebrew-cask:
+    name: Update Homebrew Cask
+    needs: [release-please, build]
+    if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
+
     steps:
-      - name: Publish release
-        uses: softprops/action-gh-release@v1
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          draft: false
+          ref: ${{ needs.release-please.outputs.tag_name }}
+
+      - name: Download release artifacts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p dist
+          TAG="${{ needs.release-please.outputs.tag_name }}"
+          gh release download "$TAG" --repo "${{ github.repository }}" --pattern "*.tar.gz" --dir dist
+          gh release download "$TAG" --repo "${{ github.repository }}" --pattern "*.sha256" --dir dist
+
+      - name: Generate Homebrew Cask
+        env:
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+        run: |
+          TAG="${{ needs.release-please.outputs.tag_name }}"
+          VERSION="${TAG#margin-v}"
+
+          DARWIN_AMD64_SHA=$(cat dist/margin_${VERSION}_x86_64-apple-darwin.tar.gz.sha256 | cut -d' ' -f1)
+          DARWIN_ARM64_SHA=$(cat dist/margin_${VERSION}_aarch64-apple-darwin.tar.gz.sha256 | cut -d' ' -f1)
+
+          cat > margin.rb << 'CASK'
+          cask "margin" do
+            version "VERSION_PLACEHOLDER"
+
+            on_arm do
+              sha256 "ARM64_SHA_PLACEHOLDER"
+              url "https://github.com/panbanda/margin/releases/download/margin-v#{version}/margin_#{version}_aarch64-apple-darwin.tar.gz"
+            end
+
+            on_intel do
+              sha256 "AMD64_SHA_PLACEHOLDER"
+              url "https://github.com/panbanda/margin/releases/download/margin-v#{version}/margin_#{version}_x86_64-apple-darwin.tar.gz"
+            end
+
+            name "margin"
+            desc "Keyboard-driven, AI-augmented email client"
+            homepage "https://github.com/panbanda/margin"
+            license "AGPL-3.0"
+
+            binary "margin"
+
+            zap trash: [
+              "~/.config/margin",
+              "~/.local/share/margin",
+            ]
+          end
+          CASK
+
+          # Replace placeholders
+          sed -i "s/VERSION_PLACEHOLDER/${VERSION}/g" margin.rb
+          sed -i "s/ARM64_SHA_PLACEHOLDER/${DARWIN_ARM64_SHA}/g" margin.rb
+          sed -i "s/AMD64_SHA_PLACEHOLDER/${DARWIN_AMD64_SHA}/g" margin.rb
+
+          if [ -n "$HOMEBREW_TAP_GITHUB_TOKEN" ]; then
+            git clone "https://x-access-token:${HOMEBREW_TAP_GITHUB_TOKEN}@github.com/panbanda/homebrew-margin.git" tap
+            mkdir -p tap/Casks
+            cp margin.rb tap/Casks/margin.rb
+
+            cd tap
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add Casks/margin.rb
+            git commit -m "Update margin cask to ${VERSION}" || echo "No changes to commit"
+            git push || echo "Push failed or no changes"
+          fi
