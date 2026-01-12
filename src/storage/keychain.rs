@@ -190,12 +190,13 @@ mod tests {
 
     // Integration tests that actually hit the keychain are skipped by default
     // because they require OS-level permissions and may leave artifacts.
-    // Run with: cargo test --features keychain-integration-tests
+    // Run with: cargo test --features keychain-integration-tests -- --ignored
     #[cfg(feature = "keychain-integration-tests")]
     mod integration {
         use super::*;
 
         #[tokio::test]
+        #[ignore = "requires OS keychain access"]
         async fn store_retrieve_delete_cycle() {
             let keychain = KeychainAccess::with_service("io.margin.test");
             let key = "test-credential";

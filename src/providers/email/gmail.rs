@@ -1209,6 +1209,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires OAuth credentials in keychain"]
     async fn gmail_provider_authenticate() {
         let mut provider = GmailProvider::new(AccountId::from("test-account"));
         assert!(!provider.is_authenticated());
@@ -1227,6 +1228,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires OAuth credentials in keychain"]
     async fn gmail_provider_fetch_threads_empty() {
         let mut provider = GmailProvider::new(AccountId::from("test-account"));
         provider.authenticate().await.unwrap();
@@ -1239,6 +1241,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires OAuth credentials in keychain"]
     async fn gmail_provider_stub_operations() {
         let mut provider = GmailProvider::new(AccountId::from("test-account"));
         provider.authenticate().await.unwrap();

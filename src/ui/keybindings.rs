@@ -910,18 +910,23 @@ mod tests {
     #[test]
     fn manager_detect_conflicts() {
         let mut manager = KeybindingManager::new();
-        // This shouldn't have conflicts with defaults
+        // Default bindings shouldn't have conflicts
         let conflicts = manager.detect_conflicts();
         assert!(conflicts.is_empty());
 
-        // Add a conflicting binding
+        // Rebinding a key overwrites the old command, so no conflict
+        // The "C" key was bound to "compose", now bound to "other_command"
         manager.bind(
             KeyContext::Global,
             KeyBinding::single(Keystroke::key(Key::C)),
             "other_command",
         );
         let conflicts = manager.detect_conflicts();
-        assert_eq!(conflicts.len(), 1);
+        assert!(conflicts.is_empty());
+
+        // Verify the key is now bound to the new command
+        let result = manager.process(Keystroke::key(Key::C));
+        assert_eq!(result, KeyResult::Matched("other_command".to_string()));
     }
 
     #[test]
