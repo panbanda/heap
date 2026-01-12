@@ -23,10 +23,12 @@
 //! - [`AiService`]: Manages AI provider interactions for summarization, drafts, and search
 //! - [`SyncService`]: Handles synchronization between remote providers and local storage
 //! - [`SearchService`]: Combined full-text and semantic search across emails
+//! - [`ContactService`]: Manages contacts extracted from email interactions
 //! - [`SnoozeService`]: Temporarily hides emails until a scheduled time
 //! - [`TelemetryService`]: Local usage statistics and event tracking
 
 mod ai_service;
+mod contact_service;
 mod email_service;
 mod search_service;
 mod snooze_service;
@@ -36,6 +38,9 @@ mod undo_service;
 
 pub use ai_service::{
     AiService, AiSettings, Category, DraftSuggestion, SearchResult, Summary, SummarySettings,
+};
+pub use contact_service::{
+    ContactError, ContactFilter, ContactService, ContactSort, ContactStats, ContactStorage,
 };
 pub use email_service::{Draft, EmailService, Pagination, ViewType};
 pub use search_service::{
