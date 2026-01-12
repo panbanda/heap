@@ -18,7 +18,7 @@ fn contact_creation_and_properties() {
     assert_eq!(contact.email, "alice@example.com");
     assert_eq!(contact.name, Some("Alice Smith".to_string()));
     assert!(!contact.is_vip);
-    assert_eq!(contact.frequency, 0);
+    assert_eq!(contact.frequency, 1); // New contacts start with frequency 1
 }
 
 #[test]
