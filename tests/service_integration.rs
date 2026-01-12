@@ -4,8 +4,8 @@
 //! across module boundaries. Each service module contains its own unit tests
 //! for detailed logic testing.
 
-use margin::domain::{system_labels, Contact, LabelId, ThreadId};
-use margin::services::{ContactFilter, SnoozeDuration, ViewType};
+use heap::domain::{system_labels, Contact, LabelId, ThreadId};
+use heap::services::{ContactFilter, SnoozeDuration, ViewType};
 
 // ============================================================================
 // Domain Type Tests

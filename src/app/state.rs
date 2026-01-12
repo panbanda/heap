@@ -36,6 +36,14 @@ pub enum ViewType {
     Settings,
     /// Statistics dashboard.
     Stats,
+    /// AI-classified actionable emails requiring response.
+    Actionable,
+    /// Newsletters and subscriptions.
+    Newsletters,
+    /// Social notifications (LinkedIn, Twitter, etc.).
+    Social,
+    /// Transactional updates (shipping, receipts, etc.).
+    Updates,
 }
 
 /// Sync status for an account.

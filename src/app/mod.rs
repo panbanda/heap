@@ -25,6 +25,8 @@ actions!(
     heap,
     [
         Quit,
+        Dismiss,
+        Undo,
         Compose,
         Reply,
         ReplyAll,
@@ -33,6 +35,7 @@ actions!(
         Trash,
         Star,
         Snooze,
+        ApplyLabel,
         MarkRead,
         MarkUnread,
         NextMessage,
@@ -43,6 +46,10 @@ actions!(
         GoToDrafts,
         GoToSent,
         GoToArchive,
+        GoToScreener,
+        GoToStats,
+        ScreenerApprove,
+        ScreenerReject,
         OpenCommandPalette,
         Search,
         ToggleTheme,
@@ -70,39 +77,41 @@ impl App {
 
     /// Register global keybindings
     fn register_keybindings(cx: &mut gpui::App) {
+        // Context for single-letter keybindings that should not fire during text input
+        let email_ctx = Some("EmailActions");
+
         cx.bind_keys([
-            // Quit
+            // Quit and dismiss - global, always available
             KeyBinding::new("cmd-q", Quit, None),
-            // Compose
-            KeyBinding::new("c", Compose, None),
-            // Reply
-            KeyBinding::new("r", Reply, None),
-            KeyBinding::new("shift-r", ReplyAll, None),
-            // Forward
-            KeyBinding::new("f", Forward, None),
-            // Archive/Delete
-            KeyBinding::new("e", Archive, None),
-            KeyBinding::new("shift-3", Trash, None),
-            // Star/Snooze
-            KeyBinding::new("s", Star, None),
-            KeyBinding::new("h", Snooze, None),
-            // Read state
-            KeyBinding::new("u", MarkRead, None),
-            KeyBinding::new("shift-u", MarkUnread, None),
-            // Navigation
-            KeyBinding::new("j", NextMessage, None),
-            KeyBinding::new("k", PreviousMessage, None),
-            KeyBinding::new("enter", OpenThread, None),
-            // Go to views
-            KeyBinding::new("g i", GoToInbox, None),
-            KeyBinding::new("g s", GoToStarred, None),
-            KeyBinding::new("g d", GoToDrafts, None),
-            KeyBinding::new("g t", GoToSent, None),
-            KeyBinding::new("g a", GoToArchive, None),
-            // Command palette and search
+            KeyBinding::new("escape", Dismiss, None),
+            // Single-letter keybindings - only active in EmailActions context
+            KeyBinding::new("z", Undo, email_ctx),
+            KeyBinding::new("c", Compose, email_ctx),
+            KeyBinding::new("r", Reply, email_ctx),
+            KeyBinding::new("shift-r", ReplyAll, email_ctx),
+            KeyBinding::new("f", Forward, email_ctx),
+            KeyBinding::new("e", Archive, email_ctx),
+            KeyBinding::new("shift-3", Trash, email_ctx),
+            KeyBinding::new("s", Star, email_ctx),
+            KeyBinding::new("h", Snooze, email_ctx),
+            KeyBinding::new("l", ApplyLabel, email_ctx),
+            KeyBinding::new("u", MarkRead, email_ctx),
+            KeyBinding::new("shift-u", MarkUnread, email_ctx),
+            KeyBinding::new("j", NextMessage, email_ctx),
+            KeyBinding::new("k", PreviousMessage, email_ctx),
+            KeyBinding::new("enter", OpenThread, email_ctx),
+            KeyBinding::new("g i", GoToInbox, email_ctx),
+            KeyBinding::new("g s", GoToStarred, email_ctx),
+            KeyBinding::new("g d", GoToDrafts, email_ctx),
+            KeyBinding::new("g t", GoToSent, email_ctx),
+            KeyBinding::new("g a", GoToArchive, email_ctx),
+            KeyBinding::new("g c", GoToScreener, email_ctx),
+            KeyBinding::new("g p", GoToStats, email_ctx),
+            KeyBinding::new("a", ScreenerApprove, email_ctx),
+            KeyBinding::new("x", ScreenerReject, email_ctx),
+            KeyBinding::new("/", Search, email_ctx),
+            // Cmd-key bindings - global, always available
             KeyBinding::new("cmd-k", OpenCommandPalette, None),
-            KeyBinding::new("/", Search, None),
-            // Settings
             KeyBinding::new("cmd-,", OpenSettings, None),
         ]);
     }
