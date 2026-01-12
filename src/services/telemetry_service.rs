@@ -454,7 +454,10 @@ impl<S: TelemetryStorage> TelemetryService<S> {
         if let Some(start) = self.session_start.take() {
             let duration = start.elapsed();
             self.current_stats.time_in_app_seconds += duration.as_secs() as u32;
-            self.record(EventType::SessionEnd, EventPayload::new().duration(duration));
+            self.record(
+                EventType::SessionEnd,
+                EventPayload::new().duration(duration),
+            );
         }
 
         // Flush current stats
