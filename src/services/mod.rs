@@ -22,13 +22,23 @@
 //! - [`EmailService`]: Orchestrates email operations across providers and storage
 //! - [`AiService`]: Manages AI provider interactions for summarization, drafts, and search
 //! - [`SyncService`]: Handles synchronization between remote providers and local storage
+//! - [`SearchService`]: Combined full-text and semantic search across emails
 
 mod ai_service;
 mod email_service;
+mod search_service;
 mod sync_service;
+mod undo_service;
 
 pub use ai_service::{
     AiService, AiSettings, Category, DraftSuggestion, SearchResult, Summary, SummarySettings,
 };
 pub use email_service::{Draft, EmailService, Pagination, ViewType};
+pub use search_service::{
+    DateRange, EmailMetadata, FtsHit, SearchFolder, SearchHit, SearchMode, SearchQuery,
+    SearchResults, SearchService, SearchSettings, SearchSource, SearchStorage,
+};
 pub use sync_service::{SyncResult, SyncService, SyncSettings, SyncStatus};
+pub use undo_service::{
+    ActionBuilder, ActionResult, ActionState, ActionType, UndoService, UndoableAction,
+};

@@ -3,7 +3,13 @@
 //! Uses Candle to run embedding models locally for privacy-preserving
 //! semantic search over email content.
 
-use anyhow::Result;
+use anyhow::{Context, Result};
+use candle_core::{DType, Device, Tensor};
+use candle_nn::VarBuilder;
+use candle_transformers::models::bert::{BertModel, Config as BertConfig};
+use hf_hub::{api::sync::Api, Repo, RepoType};
+use std::path::PathBuf;
+use tokenizers::Tokenizer;
 
 use crate::domain::{Email, EmailId};
 use crate::embedding::VectorStore;
@@ -53,19 +59,31 @@ impl Embedding {
 
         dot / (norm_a * norm_b)
     }
+
+    /// L2 normalizes the embedding in place.
+    pub fn normalize(&mut self) {
+        let norm: f32 = self.values.iter().map(|x| x * x).sum::<f32>().sqrt();
+        if norm > 0.0 {
+            for v in &mut self.values {
+                *v /= norm;
+            }
+        }
+    }
 }
 
 /// Configuration for the embedding engine.
 #[derive(Debug, Clone)]
 pub struct EmbeddingConfig {
     /// Path to the model weights.
-    pub model_path: Option<String>,
+    pub model_path: Option<PathBuf>,
     /// Model identifier for downloading from Hugging Face.
     pub model_id: String,
     /// Maximum sequence length for tokenization.
     pub max_seq_length: usize,
     /// Whether to use GPU acceleration if available.
     pub use_gpu: bool,
+    /// Whether to use fallback (hash-based) embeddings when model unavailable.
+    pub use_fallback: bool,
 }
 
 impl Default for EmbeddingConfig {
@@ -75,6 +93,7 @@ impl Default for EmbeddingConfig {
             model_id: "sentence-transformers/all-MiniLM-L6-v2".to_string(),
             max_seq_length: 256,
             use_gpu: false,
+            use_fallback: true,
         }
     }
 }
@@ -86,17 +105,28 @@ impl Default for EmbeddingConfig {
 pub struct EmbeddingEngine {
     config: EmbeddingConfig,
     vector_store: VectorStore,
-    // In a full implementation, these would hold the loaded model:
-    // model: Option<CandleModel>,
-    // tokenizer: Option<Tokenizer>,
+    model: Option<BertModel>,
+    tokenizer: Option<Tokenizer>,
+    device: Device,
+    initialized: bool,
 }
 
 impl EmbeddingEngine {
     /// Creates a new embedding engine with the given configuration.
     pub fn new(config: EmbeddingConfig, vector_store: VectorStore) -> Self {
+        let device = if config.use_gpu {
+            Device::cuda_if_available(0).unwrap_or(Device::Cpu)
+        } else {
+            Device::Cpu
+        };
+
         Self {
             config,
             vector_store,
+            model: None,
+            tokenizer: None,
+            device,
+            initialized: false,
         }
     }
 
@@ -109,15 +139,84 @@ impl EmbeddingEngine {
     ///
     /// This should be called before using `embed()` or `index_email()`.
     pub async fn initialize(&mut self) -> Result<()> {
-        // Stub: In full implementation, this would:
-        // 1. Check if model exists at model_path
-        // 2. Download from Hugging Face if not present
-        // 3. Load model weights into Candle
-        // 4. Initialize tokenizer
+        if self.initialized {
+            return Ok(());
+        }
+
         tracing::info!(
             model_id = %self.config.model_id,
-            "Initializing embedding model (stub)"
+            device = ?self.device,
+            "Initializing embedding model"
         );
+
+        match self.load_model() {
+            Ok(()) => {
+                self.initialized = true;
+                tracing::info!("Embedding model loaded successfully");
+            }
+            Err(e) => {
+                if self.config.use_fallback {
+                    tracing::warn!(
+                        error = %e,
+                        "Failed to load embedding model, using fallback hash-based embeddings"
+                    );
+                    self.initialized = true;
+                } else {
+                    return Err(e);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Loads the model and tokenizer from HuggingFace Hub.
+    fn load_model(&mut self) -> Result<()> {
+        let api = Api::new().context("Failed to create HuggingFace API client")?;
+        let repo = api.repo(Repo::new(self.config.model_id.clone(), RepoType::Model));
+
+        // Download model files
+        let config_path = repo
+            .get("config.json")
+            .context("Failed to get config.json")?;
+        let tokenizer_path = repo
+            .get("tokenizer.json")
+            .context("Failed to get tokenizer.json")?;
+        let weights_path = repo
+            .get("model.safetensors")
+            .or_else(|_| repo.get("pytorch_model.bin"))
+            .context("Failed to get model weights")?;
+
+        // Load configuration
+        let config_str =
+            std::fs::read_to_string(&config_path).context("Failed to read config.json")?;
+        let bert_config: BertConfig =
+            serde_json::from_str(&config_str).context("Failed to parse config.json")?;
+
+        // Load tokenizer
+        let tokenizer = Tokenizer::from_file(&tokenizer_path)
+            .map_err(|e| anyhow::anyhow!("Failed to load tokenizer: {}", e))?;
+
+        // Load model weights
+        let vb = if weights_path
+            .extension()
+            .is_some_and(|ext| ext == "safetensors")
+        {
+            unsafe {
+                VarBuilder::from_mmaped_safetensors(&[weights_path], DType::F32, &self.device)
+                    .context("Failed to load safetensors weights")?
+            }
+        } else {
+            VarBuilder::from_pth(weights_path, DType::F32, &self.device)
+                .context("Failed to load PyTorch weights")?
+        };
+
+        // Build model
+        let model = BertModel::load(vb, &bert_config).context("Failed to build BERT model")?;
+
+        self.model = Some(model);
+        self.tokenizer = Some(tokenizer);
+
         Ok(())
     }
 
@@ -126,13 +225,67 @@ impl EmbeddingEngine {
     /// The text is tokenized, passed through the model, and the output
     /// is pooled to produce a fixed-size embedding vector.
     pub fn embed(&self, text: &str) -> Result<Embedding> {
-        // Stub: In full implementation, this would:
-        // 1. Tokenize text with max_seq_length truncation
-        // 2. Run forward pass through the model
-        // 3. Apply mean pooling over token embeddings
-        // 4. Normalize the result
+        if let (Some(model), Some(tokenizer)) = (&self.model, &self.tokenizer) {
+            self.embed_with_model(model, tokenizer, text)
+        } else {
+            // Fallback to hash-based pseudo-embeddings
+            self.embed_fallback(text)
+        }
+    }
 
-        // For now, return a deterministic pseudo-embedding based on text hash
+    /// Generates an embedding using the loaded model.
+    fn embed_with_model(
+        &self,
+        model: &BertModel,
+        tokenizer: &Tokenizer,
+        text: &str,
+    ) -> Result<Embedding> {
+        // Tokenize the input
+        let encoding = tokenizer
+            .encode(text, true)
+            .map_err(|e| anyhow::anyhow!("Tokenization failed: {}", e))?;
+
+        let token_ids = encoding.get_ids();
+        let attention_mask = encoding.get_attention_mask();
+
+        // Truncate to max sequence length
+        let seq_len = token_ids.len().min(self.config.max_seq_length);
+        let token_ids: Vec<u32> = token_ids[..seq_len].to_vec();
+        let attention_mask: Vec<u32> = attention_mask[..seq_len].to_vec();
+
+        // Create tensors
+        let token_ids_tensor = Tensor::new(&token_ids[..], &self.device)?.unsqueeze(0)?;
+        let attention_mask_tensor = Tensor::new(&attention_mask[..], &self.device)?.unsqueeze(0)?;
+        let token_type_ids = Tensor::zeros_like(&token_ids_tensor)?;
+
+        // Forward pass
+        let output = model.forward(
+            &token_ids_tensor,
+            &token_type_ids,
+            Some(&attention_mask_tensor),
+        )?;
+
+        // Mean pooling over sequence dimension (dim 1)
+        let mask_expanded = attention_mask_tensor
+            .unsqueeze(2)?
+            .to_dtype(DType::F32)?
+            .broadcast_as(output.shape())?;
+
+        let sum_embeddings = (output * &mask_expanded)?.sum(1)?;
+        let sum_mask = mask_expanded.sum(1)?.clamp(1e-9, f64::MAX)?;
+        let mean_pooled = sum_embeddings.broadcast_div(&sum_mask)?;
+
+        // Extract values
+        let values: Vec<f32> = mean_pooled.squeeze(0)?.to_vec1()?;
+
+        let mut embedding = Embedding::new(values);
+        embedding.normalize();
+
+        Ok(embedding)
+    }
+
+    /// Generates a fallback hash-based pseudo-embedding.
+    fn embed_fallback(&self, text: &str) -> Result<Embedding> {
         let hash = Self::simple_hash(text);
         let dimension = 384; // MiniLM dimension
         let values: Vec<f32> = (0..dimension)
@@ -142,7 +295,9 @@ impl EmbeddingEngine {
             })
             .collect();
 
-        Ok(Embedding::new(values))
+        let mut embedding = Embedding::new(values);
+        embedding.normalize();
+        Ok(embedding)
     }
 
     /// Searches for emails similar to the query embedding.
@@ -160,6 +315,11 @@ impl EmbeddingEngine {
         let embedding = self.embed(&text)?;
         self.vector_store.insert(&email.id, embedding)?;
         Ok(())
+    }
+
+    /// Returns whether the model is loaded (vs using fallback).
+    pub fn is_model_loaded(&self) -> bool {
+        self.model.is_some() && self.tokenizer.is_some()
     }
 
     /// Returns the underlying vector store.
@@ -267,7 +427,19 @@ mod tests {
     }
 
     #[test]
-    fn embed_produces_consistent_output() {
+    fn embedding_normalize() {
+        let mut embedding = Embedding::new(vec![3.0, 4.0]);
+        embedding.normalize();
+        // Norm should be 1.0
+        let norm: f32 = embedding.values.iter().map(|x| x * x).sum::<f32>().sqrt();
+        assert!((norm - 1.0).abs() < 0.0001);
+        // Values should be 0.6, 0.8
+        assert!((embedding.values[0] - 0.6).abs() < 0.0001);
+        assert!((embedding.values[1] - 0.8).abs() < 0.0001);
+    }
+
+    #[test]
+    fn embed_fallback_produces_consistent_output() {
         let store = VectorStore::new();
         let engine = EmbeddingEngine::with_defaults(store);
 
@@ -279,7 +451,7 @@ mod tests {
     }
 
     #[test]
-    fn embed_different_texts_produce_different_embeddings() {
+    fn embed_fallback_different_texts_produce_different_embeddings() {
         let store = VectorStore::new();
         let engine = EmbeddingEngine::with_defaults(store);
 
@@ -287,6 +459,16 @@ mod tests {
         let emb2 = engine.embed("Goodbye").unwrap();
 
         assert_ne!(emb1.values, emb2.values);
+    }
+
+    #[test]
+    fn embed_fallback_produces_normalized_embeddings() {
+        let store = VectorStore::new();
+        let engine = EmbeddingEngine::with_defaults(store);
+
+        let embedding = engine.embed("Test text").unwrap();
+        let norm: f32 = embedding.values.iter().map(|x| x * x).sum::<f32>().sqrt();
+        assert!((norm - 1.0).abs() < 0.0001);
     }
 
     #[test]
@@ -318,5 +500,17 @@ mod tests {
         assert_eq!(config.model_id, "sentence-transformers/all-MiniLM-L6-v2");
         assert_eq!(config.max_seq_length, 256);
         assert!(!config.use_gpu);
+        assert!(config.use_fallback);
+    }
+
+    #[test]
+    fn engine_without_model_uses_fallback() {
+        let store = VectorStore::new();
+        let engine = EmbeddingEngine::with_defaults(store);
+        assert!(!engine.is_model_loaded());
+
+        // Should still work with fallback
+        let embedding = engine.embed("test").unwrap();
+        assert_eq!(embedding.dimension(), 384);
     }
 }

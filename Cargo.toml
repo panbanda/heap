@@ -30,11 +30,14 @@ bytes = "1"
 async-imap = "0.10"
 lettre = { version = "0.11", default-features = false, features = ["tokio1", "tokio1-rustls-tls", "builder", "smtp-transport", "hostname"] }
 mailparse = "0.15"
+mail-parser = "0.9"
 
 # ML inference
 candle-core = "0.8"
 candle-nn = "0.8"
 candle-transformers = "0.8"
+tokenizers = "0.21"
+hf-hub = "0.3"
 
 # Credential storage
 keyring = "3"
@@ -44,6 +47,8 @@ ring = "0.17"
 
 # TLS
 rustls = "0.23"
+tokio-rustls = "0.26"
+webpki-roots = "0.26"
 
 # OAuth
 oauth2 = "4"
@@ -54,6 +59,7 @@ chrono = { version = "0.4", features = ["serde"] }
 # Async utilities
 async-trait = "0.1"
 futures = "0.3"
+tokio-util = { version = "0.7", features = ["compat"] }
 
 # Error handling
 thiserror = "2"

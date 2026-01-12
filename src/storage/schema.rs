@@ -261,6 +261,39 @@ CREATE TABLE IF NOT EXISTS settings (
 )
 "#;
 
+/// SQL to create the FTS5 virtual table for email search.
+pub const CREATE_EMAILS_FTS: &str = r#"
+CREATE VIRTUAL TABLE IF NOT EXISTS emails_fts USING fts5(
+    subject,
+    body_text,
+    from_address,
+    from_name,
+    to_addresses,
+    content='emails',
+    content_rowid='rowid'
+)
+"#;
+
+/// SQL to create triggers to keep FTS in sync with emails table.
+pub const CREATE_EMAILS_FTS_TRIGGERS: &str = r#"
+CREATE TRIGGER IF NOT EXISTS emails_ai AFTER INSERT ON emails BEGIN
+    INSERT INTO emails_fts(rowid, subject, body_text, from_address, from_name, to_addresses)
+    VALUES (NEW.rowid, NEW.subject, NEW.body_text, NEW.from_address, NEW.from_name, NEW.to_addresses);
+END;
+
+CREATE TRIGGER IF NOT EXISTS emails_ad AFTER DELETE ON emails BEGIN
+    INSERT INTO emails_fts(emails_fts, rowid, subject, body_text, from_address, from_name, to_addresses)
+    VALUES ('delete', OLD.rowid, OLD.subject, OLD.body_text, OLD.from_address, OLD.from_name, OLD.to_addresses);
+END;
+
+CREATE TRIGGER IF NOT EXISTS emails_au AFTER UPDATE ON emails BEGIN
+    INSERT INTO emails_fts(emails_fts, rowid, subject, body_text, from_address, from_name, to_addresses)
+    VALUES ('delete', OLD.rowid, OLD.subject, OLD.body_text, OLD.from_address, OLD.from_name, OLD.to_addresses);
+    INSERT INTO emails_fts(rowid, subject, body_text, from_address, from_name, to_addresses)
+    VALUES (NEW.rowid, NEW.subject, NEW.body_text, NEW.from_address, NEW.from_name, NEW.to_addresses);
+END
+"#;
+
 /// Returns all schema creation statements in order.
 pub fn all_migrations() -> Vec<&'static str> {
     vec![
@@ -285,6 +318,8 @@ pub fn all_migrations() -> Vec<&'static str> {
         CREATE_TELEMETRY_INDEX,
         CREATE_DAILY_STATS,
         CREATE_SETTINGS,
+        CREATE_EMAILS_FTS,
+        CREATE_EMAILS_FTS_TRIGGERS,
     ]
 }
 

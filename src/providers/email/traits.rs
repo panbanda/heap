@@ -79,7 +79,7 @@ impl Pagination {
 
 /// A change detected during sync.
 ///
-/// Used by [`SyncService`] to apply incremental updates to local storage.
+/// Used by the sync service to apply incremental updates to local storage.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Change {
     /// A new email was received.

@@ -80,7 +80,7 @@ impl Address {
 
     /// Returns the display representation of this address.
     ///
-    /// If a name is present, returns "Name <email>", otherwise just the email.
+    /// If a name is present, returns `"Name <email>"`, otherwise just the email.
     pub fn display(&self) -> String {
         match &self.name {
             Some(name) => format!("{} <{}>", name, self.email),
