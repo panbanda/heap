@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Margin uses AppleScript for automation and integration with other apps.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Margin may use the camera for video calls in the future.</string>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Margin may use the microphone for voice features in the future.</string>
+</dict>
+</plist>

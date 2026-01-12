@@ -30,8 +30,8 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  build:
-    name: Build (${{ matrix.target }})
+  build-linux:
+    name: Build Linux (${{ matrix.target }})
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created }}
 
@@ -41,16 +41,8 @@ jobs:
         include:
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-latest
-            archive: tar.gz
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-24.04-arm
-            archive: tar.gz
-          - target: x86_64-apple-darwin
-            os: macos-14
-            archive: tar.gz
-          - target: aarch64-apple-darwin
-            os: macos-latest
-            archive: tar.gz
 
     runs-on: ${{ matrix.os }}
 
@@ -70,7 +62,6 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: Install Linux dependencies
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libxkbcommon-dev libwayland-dev libvulkan-dev
@@ -100,9 +91,81 @@ jobs:
           TAG="${{ needs.release-please.outputs.tag_name }}"
           gh release upload "$TAG" dist/*.tar.gz dist/*.sha256 --clobber
 
+  build-macos:
+    name: Build macOS (${{ matrix.target }})
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-apple-darwin
+            os: macos-14
+            arch: x86_64
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            arch: arm64
+
+    runs-on: ${{ matrix.os }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Add cross-compilation target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Install cargo-bundle
+        run: cargo install cargo-bundle
+
+      - name: Cache cargo registry and build
+        uses: Swatinem/rust-cache@v2
+
+      - name: Set macOS deployment target
+        run: echo "MACOSX_DEPLOYMENT_TARGET=10.15" >> $GITHUB_ENV
+
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Create app bundle
+        run: cargo bundle --release --target ${{ matrix.target }}
+
+      - name: Create DMG
+        run: |
+          TAG="${{ needs.release-please.outputs.tag_name }}"
+          VERSION="${TAG#margin-v}"
+          DMG_NAME="Margin_${VERSION}_${{ matrix.arch }}.dmg"
+          APP_PATH="target/${{ matrix.target }}/release/bundle/osx/Margin.app"
+
+          mkdir -p dist
+
+          # Create DMG
+          hdiutil create -volname "Margin" -srcfolder "$APP_PATH" \
+            -ov -format UDZO "dist/${DMG_NAME}"
+
+          # Create checksum
+          cd dist
+          shasum -a 256 "${DMG_NAME}" > "${DMG_NAME}.sha256"
+
+      - name: Upload release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ needs.release-please.outputs.tag_name }}"
+          gh release upload "$TAG" dist/*.dmg dist/*.sha256 --clobber
+
   checksums:
     name: Create Checksums
-    needs: [release-please, build]
+    needs: [release-please, build-linux, build-macos]
     if: ${{ needs.release-please.outputs.release_created }}
     runs-on: ubuntu-latest
 
@@ -121,7 +184,6 @@ jobs:
         run: |
           mkdir -p dist
           TAG="${{ needs.release-please.outputs.tag_name }}"
-          gh release download "$TAG" --pattern "*.tar.gz" --dir dist
           gh release download "$TAG" --pattern "*.sha256" --dir dist
 
       - name: Create consolidated checksums

@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Bundle Margin for macOS
+# Usage: ./script/bundle-mac [--release] [--sign]
+
+RELEASE_FLAG=""
+SIGN_APP=false
+TARGET_ARCH="${TARGET_ARCH:-$(uname -m)}"
+
+# Map arch names
+case "$TARGET_ARCH" in
+    arm64) TARGET_TRIPLE="aarch64-apple-darwin" ;;
+    x86_64) TARGET_TRIPLE="x86_64-apple-darwin" ;;
+    aarch64) TARGET_TRIPLE="aarch64-apple-darwin" ;;
+    *) echo "Unsupported architecture: $TARGET_ARCH"; exit 1 ;;
+esac
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --release) RELEASE_FLAG="--release"; shift ;;
+        --sign) SIGN_APP=true; shift ;;
+        *) echo "Unknown option: $1"; exit 1 ;;
+    esac
+done
+
+echo "Building Margin for $TARGET_TRIPLE..."
+
+# Set macOS deployment target
+export MACOSX_DEPLOYMENT_TARGET=10.15
+
+# Install cargo-bundle if not present
+if ! command -v cargo-bundle &> /dev/null; then
+    echo "Installing cargo-bundle..."
+    cargo install cargo-bundle
+fi
+
+# Build the application
+cargo build $RELEASE_FLAG --target "$TARGET_TRIPLE"
+
+# Create the app bundle
+echo "Creating app bundle..."
+APP_PATH=$(cargo bundle $RELEASE_FLAG --target "$TARGET_TRIPLE" 2>&1 | grep -oE '/[^ ]+\.app' | head -1)
+
+if [[ -z "$APP_PATH" ]]; then
+    echo "Failed to determine app path from cargo bundle output"
+    # Try to find it manually
+    if [[ -n "$RELEASE_FLAG" ]]; then
+        APP_PATH="target/$TARGET_TRIPLE/release/bundle/osx/Margin.app"
+    else
+        APP_PATH="target/$TARGET_TRIPLE/debug/bundle/osx/Margin.app"
+    fi
+fi
+
+echo "App bundle created at: $APP_PATH"
+
+# Code signing (optional)
+if [[ "$SIGN_APP" == true ]]; then
+    IDENTITY="${APPLE_SIGNING_IDENTITY:-}"
+
+    if [[ -z "$IDENTITY" ]]; then
+        echo "Warning: APPLE_SIGNING_IDENTITY not set, skipping code signing"
+    else
+        echo "Signing app bundle..."
+
+        # Sign the main binary
+        /usr/bin/codesign --deep --force --timestamp --options runtime \
+            --entitlements resources/margin.entitlements \
+            --sign "$IDENTITY" "${APP_PATH}/Contents/MacOS/margin" -v
+
+        # Sign the app bundle
+        /usr/bin/codesign --force --timestamp --options runtime \
+            --entitlements resources/margin.entitlements \
+            --sign "$IDENTITY" "${APP_PATH}" -v
+
+        echo "App signed successfully"
+    fi
+fi
+
+echo ""
+echo "Bundle complete!"
+echo "App location: $APP_PATH"
+echo ""
+echo "To install, run:"
+echo "  cp -r \"$APP_PATH\" /Applications/"

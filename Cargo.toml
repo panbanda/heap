@@ -99,3 +99,14 @@ debug = true
 
 [profile.dev.package."*"]
 opt-level = 3
+
+# macOS App Bundle Configuration
+[package.metadata.bundle]
+name = "Margin"
+identifier = "com.panbanda.margin"
+icon = ["resources/app-icon@2x.png", "resources/app-icon.png"]
+copyright = "Copyright (c) 2024 Panbanda. All rights reserved."
+category = "public.app-category.productivity"
+short_description = "A keyboard-driven, AI-augmented email client"
+osx_minimum_system_version = "10.15"
+osx_info_plist_exts = ["resources/info/*"]
