@@ -31,7 +31,10 @@
 //! - [`NotificationService`]: In-app and system notifications
 //! - [`SmartViewService`]: AI-powered email classification into smart views
 //! - [`StatsService`]: Usage statistics and metrics aggregation
+//! - [`AccountService`]: Manages email account configuration and credentials
+//! - [`ThreadService`]: Thread operations and metadata management
 
+mod account_service;
 mod ai_service;
 mod contact_service;
 mod email_service;
@@ -44,8 +47,13 @@ mod snooze_service;
 mod stats_service;
 mod sync_service;
 mod telemetry_service;
+mod thread_service;
 mod undo_service;
 
+pub use account_service::{
+    AccountError, AccountService, AccountStats, AccountStorage, AccountUpdate,
+    CreateAccountRequest, CredentialStore,
+};
 pub use ai_service::{
     AiService, AiSettings, Category, DraftSuggestion, SearchResult, Summary, SummarySettings,
 };
@@ -78,6 +86,9 @@ pub use sync_service::{SyncResult, SyncService, SyncSettings, SyncStatus};
 pub use telemetry_service::{
     AggregatedStats, DailyStats, EventPayload, EventType, StatsTimeRange, TelemetryError,
     TelemetryEvent, TelemetryService, TelemetryStorage,
+};
+pub use thread_service::{
+    ThreadError, ThreadFilter, ThreadService, ThreadSort, ThreadStats, ThreadStorage,
 };
 pub use undo_service::{
     ActionBuilder, ActionResult, ActionState, ActionType, UndoService, UndoableAction,
