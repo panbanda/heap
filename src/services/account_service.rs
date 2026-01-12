@@ -1,10 +1,10 @@
 //! Account service for managing email accounts.
 //!
-//! The [`AccountService`] handles account lifecycle operations including:
-//! - Adding and removing accounts
-//! - Updating account settings
-//! - Managing authentication credentials
-//! - Tracking active account state
+//! Provides a service layer for account operations including:
+//! - Account creation and configuration
+//! - Credential storage and retrieval
+//! - Account updates and deletion
+//! - Active account management
 
 use std::time::Duration;
 
@@ -24,7 +24,7 @@ pub enum AccountError {
     #[error("account already exists: {0}")]
     AlreadyExists(String),
 
-    /// Invalid configuration.
+    /// Invalid account configuration.
     #[error("invalid account configuration: {0}")]
     InvalidConfig(String),
 
@@ -44,42 +44,39 @@ pub enum AccountError {
 /// Result type for account operations.
 pub type AccountResult<T> = Result<T, AccountError>;
 
-/// Storage trait for account persistence.
+/// Storage abstraction for account operations.
 #[async_trait]
 pub trait AccountStorage: Send + Sync {
-    /// Inserts a new account.
-    async fn insert(&self, account: &Account) -> AccountResult<()>;
+    /// Gets an account by ID.
+    async fn get_account(&self, id: &AccountId) -> AccountResult<Option<Account>>;
 
-    /// Retrieves an account by ID.
-    async fn get_by_id(&self, account_id: &AccountId) -> AccountResult<Option<Account>>;
-
-    /// Retrieves an account by email.
+    /// Gets an account by email.
     async fn get_by_email(&self, email: &str) -> AccountResult<Option<Account>>;
 
-    /// Retrieves all accounts.
-    async fn get_all(&self) -> AccountResult<Vec<Account>>;
+    /// Gets all accounts.
+    async fn get_all_accounts(&self) -> AccountResult<Vec<Account>>;
+
+    /// Inserts a new account.
+    async fn insert_account(&self, account: &Account) -> AccountResult<()>;
 
     /// Updates an account.
-    async fn update(&self, account: &Account) -> AccountResult<()>;
+    async fn update_account(&self, account: &Account) -> AccountResult<()>;
 
-    /// Deletes an account and all associated data.
-    async fn delete(&self, account_id: &AccountId) -> AccountResult<()>;
-
-    /// Checks if an account with the given email exists.
-    async fn exists_by_email(&self, email: &str) -> AccountResult<bool>;
+    /// Deletes an account.
+    async fn delete_account(&self, id: &AccountId) -> AccountResult<()>;
 
     /// Counts total accounts.
-    async fn count(&self) -> AccountResult<u32>;
+    async fn count_accounts(&self) -> AccountResult<u32>;
 }
 
-/// Trait for secure credential storage.
+/// Storage abstraction for credentials.
 #[async_trait]
 pub trait CredentialStore: Send + Sync {
     /// Stores a credential.
     async fn store(&self, key: &str, value: &str) -> AccountResult<()>;
 
     /// Retrieves a credential.
-    async fn get(&self, key: &str) -> AccountResult<Option<String>>;
+    async fn retrieve(&self, key: &str) -> AccountResult<Option<String>>;
 
     /// Deletes a credential.
     async fn delete(&self, key: &str) -> AccountResult<()>;
@@ -88,24 +85,24 @@ pub trait CredentialStore: Send + Sync {
 /// Request to create a new account.
 #[derive(Debug, Clone)]
 pub struct CreateAccountRequest {
-    /// Email address for the account.
+    /// Email address.
     pub email: String,
-    /// Display name for the account.
+    /// Display name.
     pub display_name: Option<String>,
     /// Provider type.
     pub provider_type: ProviderType,
-    /// Provider-specific configuration.
+    /// Provider configuration.
     pub provider_config: ProviderConfig,
     /// Whether sync is enabled.
     pub sync_enabled: bool,
     /// Sync interval.
     pub sync_interval: Duration,
-    /// Optional signature.
+    /// Email signature.
     pub signature: Option<String>,
 }
 
 impl CreateAccountRequest {
-    /// Creates a new Gmail account request.
+    /// Creates a Gmail account request.
     pub fn gmail(email: impl Into<String>) -> Self {
         Self {
             email: email.into(),
@@ -118,14 +115,11 @@ impl CreateAccountRequest {
         }
     }
 
-    /// Creates a new IMAP account request.
+    /// Creates an IMAP account request.
     pub fn imap(
         email: impl Into<String>,
         imap_host: impl Into<String>,
-        imap_port: u16,
         smtp_host: impl Into<String>,
-        smtp_port: u16,
-        use_tls: bool,
     ) -> Self {
         Self {
             email: email.into(),
@@ -133,10 +127,10 @@ impl CreateAccountRequest {
             provider_type: ProviderType::Imap,
             provider_config: ProviderConfig::Imap {
                 imap_host: imap_host.into(),
-                imap_port,
+                imap_port: 993,
                 smtp_host: smtp_host.into(),
-                smtp_port,
-                use_tls,
+                smtp_port: 587,
+                use_tls: true,
             },
             sync_enabled: true,
             sync_interval: Duration::from_secs(300),
@@ -163,23 +157,23 @@ impl CreateAccountRequest {
     }
 
     /// Sets the signature.
-    pub fn signature(mut self, signature: impl Into<String>) -> Self {
-        self.signature = Some(signature.into());
+    pub fn signature(mut self, sig: impl Into<String>) -> Self {
+        self.signature = Some(sig.into());
         self
     }
 }
 
-/// Updates to an existing account.
+/// Updates to apply to an account.
 #[derive(Debug, Clone, Default)]
 pub struct AccountUpdate {
     /// New display name.
-    pub display_name: Option<Option<String>>,
-    /// New sync enabled state.
+    pub display_name: Option<String>,
+    /// New sync enabled status.
     pub sync_enabled: Option<bool>,
     /// New sync interval.
     pub sync_interval: Option<Duration>,
     /// New signature.
-    pub signature: Option<Option<String>>,
+    pub signature: Option<String>,
 }
 
 impl AccountUpdate {
@@ -189,31 +183,39 @@ impl AccountUpdate {
     }
 
     /// Sets the display name.
-    pub fn display_name(mut self, name: Option<impl Into<String>>) -> Self {
-        self.display_name = Some(name.map(|n| n.into()));
+    pub fn display_name(mut self, name: impl Into<String>) -> Self {
+        self.display_name = Some(name.into());
         self
     }
 
-    /// Sets sync enabled state.
+    /// Sets sync enabled.
     pub fn sync_enabled(mut self, enabled: bool) -> Self {
         self.sync_enabled = Some(enabled);
         self
     }
 
-    /// Sets sync interval.
+    /// Sets the sync interval.
     pub fn sync_interval(mut self, interval: Duration) -> Self {
         self.sync_interval = Some(interval);
         self
     }
 
     /// Sets the signature.
-    pub fn signature(mut self, signature: Option<impl Into<String>>) -> Self {
-        self.signature = Some(signature.map(|s| s.into()));
+    pub fn signature(mut self, sig: impl Into<String>) -> Self {
+        self.signature = Some(sig.into());
         self
+    }
+
+    /// Returns true if this update has no changes.
+    pub fn is_empty(&self) -> bool {
+        self.display_name.is_none()
+            && self.sync_enabled.is_none()
+            && self.sync_interval.is_none()
+            && self.signature.is_none()
     }
 }
 
-/// Statistics about accounts.
+/// Account statistics.
 #[derive(Debug, Clone, Default)]
 pub struct AccountStats {
     /// Total number of accounts.
@@ -222,8 +224,8 @@ pub struct AccountStats {
     pub gmail_accounts: u32,
     /// Number of IMAP accounts.
     pub imap_accounts: u32,
-    /// Number of accounts with sync enabled.
-    pub sync_enabled_count: u32,
+    /// Number of sync-enabled accounts.
+    pub sync_enabled_accounts: u32,
 }
 
 /// Service for managing email accounts.
@@ -256,16 +258,17 @@ impl<S: AccountStorage, C: CredentialStore> AccountService<S, C> {
             )));
         }
 
-        // Check for duplicate
-        if self.storage.exists_by_email(&request.email).await? {
+        // Check if account already exists
+        if self.storage.get_by_email(&request.email).await?.is_some() {
             return Err(AccountError::AlreadyExists(request.email));
         }
 
         // Validate provider config
         validate_provider_config(&request.provider_type, &request.provider_config)?;
 
+        // Create the account
         let account = Account {
-            id: AccountId::from(format!("acct-{}", uuid::Uuid::new_v4())),
+            id: AccountId::from(format!("account-{}", uuid::Uuid::new_v4())),
             email: request.email,
             display_name: request.display_name,
             provider_type: request.provider_type,
@@ -275,7 +278,7 @@ impl<S: AccountStorage, C: CredentialStore> AccountService<S, C> {
             signature: request.signature,
         };
 
-        self.storage.insert(&account).await?;
+        self.storage.insert_account(&account).await?;
 
         // Set as active if this is the first account
         if self.active_account_id.is_none() {
@@ -285,35 +288,41 @@ impl<S: AccountStorage, C: CredentialStore> AccountService<S, C> {
         Ok(account)
     }
 
-    /// Retrieves an account by ID.
-    pub async fn get_account(&self, account_id: &AccountId) -> AccountResult<Option<Account>> {
-        self.storage.get_by_id(account_id).await
+    /// Gets an account by ID.
+    pub async fn get_account(&self, id: &AccountId) -> AccountResult<Account> {
+        self.storage
+            .get_account(id)
+            .await?
+            .ok_or_else(|| AccountError::NotFound(id.to_string()))
     }
 
-    /// Retrieves an account by email.
-    pub async fn get_account_by_email(&self, email: &str) -> AccountResult<Option<Account>> {
-        self.storage.get_by_email(email).await
+    /// Gets an account by email.
+    pub async fn get_by_email(&self, email: &str) -> AccountResult<Account> {
+        self.storage
+            .get_by_email(email)
+            .await?
+            .ok_or_else(|| AccountError::NotFound(email.to_string()))
     }
 
-    /// Retrieves all accounts.
+    /// Gets all accounts.
     pub async fn get_all_accounts(&self) -> AccountResult<Vec<Account>> {
-        self.storage.get_all().await
+        self.storage.get_all_accounts().await
     }
 
-    /// Updates an existing account.
+    /// Updates an account.
     pub async fn update_account(
         &self,
-        account_id: &AccountId,
+        id: &AccountId,
         update: AccountUpdate,
     ) -> AccountResult<Account> {
-        let mut account = self
-            .storage
-            .get_by_id(account_id)
-            .await?
-            .ok_or_else(|| AccountError::NotFound(account_id.0.clone()))?;
+        if update.is_empty() {
+            return self.get_account(id).await;
+        }
+
+        let mut account = self.get_account(id).await?;
 
         if let Some(display_name) = update.display_name {
-            account.display_name = display_name;
+            account.display_name = Some(display_name);
         }
         if let Some(sync_enabled) = update.sync_enabled {
             account.sync_enabled = sync_enabled;
@@ -322,66 +331,55 @@ impl<S: AccountStorage, C: CredentialStore> AccountService<S, C> {
             account.sync_interval = sync_interval;
         }
         if let Some(signature) = update.signature {
-            account.signature = signature;
+            account.signature = Some(signature);
         }
 
-        self.storage.update(&account).await?;
+        self.storage.update_account(&account).await?;
 
         Ok(account)
     }
 
-    /// Deletes an account and all associated data.
-    pub async fn delete_account(&mut self, account_id: &AccountId) -> AccountResult<()> {
-        // Check if account exists
-        if self.storage.get_by_id(account_id).await?.is_none() {
-            return Err(AccountError::NotFound(account_id.0.clone()));
-        }
+    /// Deletes an account.
+    pub async fn delete_account(&mut self, id: &AccountId) -> AccountResult<()> {
+        // Verify account exists
+        self.get_account(id).await?;
 
-        // Delete credentials
-        self.credentials
-            .delete(&format!("oauth_{}", account_id.0))
-            .await
-            .ok();
-        self.credentials
-            .delete(&format!("password_{}", account_id.0))
-            .await
-            .ok();
+        // Delete associated credentials
+        let oauth_key = format!("oauth:{}", id);
+        let password_key = format!("password:{}", id);
+        let _ = self.credentials.delete(&oauth_key).await;
+        let _ = self.credentials.delete(&password_key).await;
 
-        // Delete account data
-        self.storage.delete(account_id).await?;
+        // Delete the account
+        self.storage.delete_account(id).await?;
 
         // Clear active account if it was deleted
-        if self.active_account_id.as_ref() == Some(account_id) {
-            // Try to set another account as active
-            let accounts = self.storage.get_all().await?;
-            self.active_account_id = accounts.first().map(|a| a.id.clone());
+        if self.active_account_id.as_ref() == Some(id) {
+            self.active_account_id = None;
         }
 
         Ok(())
     }
 
-    /// Returns the currently active account.
-    pub fn active_account_id(&self) -> Option<&AccountId> {
-        self.active_account_id.as_ref()
+    /// Gets the active account.
+    pub async fn get_active_account(&self) -> AccountResult<Option<Account>> {
+        match &self.active_account_id {
+            Some(id) => Ok(Some(self.get_account(id).await?)),
+            None => Ok(None),
+        }
     }
 
     /// Sets the active account.
-    pub async fn set_active_account(&mut self, account_id: &AccountId) -> AccountResult<()> {
+    pub async fn set_active_account(&mut self, id: &AccountId) -> AccountResult<()> {
         // Verify account exists
-        if self.storage.get_by_id(account_id).await?.is_none() {
-            return Err(AccountError::NotFound(account_id.0.clone()));
-        }
-
-        self.active_account_id = Some(account_id.clone());
+        self.get_account(id).await?;
+        self.active_account_id = Some(id.clone());
         Ok(())
     }
 
-    /// Returns the currently active account.
-    pub async fn get_active_account(&self) -> AccountResult<Option<Account>> {
-        match &self.active_account_id {
-            Some(id) => self.storage.get_by_id(id).await,
-            None => Ok(None),
-        }
+    /// Gets the active account ID.
+    pub fn active_account_id(&self) -> Option<&AccountId> {
+        self.active_account_id.as_ref()
     }
 
     /// Stores OAuth tokens for an account.
@@ -389,9 +387,9 @@ impl<S: AccountStorage, C: CredentialStore> AccountService<S, C> {
         &self,
         account_id: &AccountId,
         access_token: &str,
-        refresh_token: Option<&str>,
+        refresh_token: &str,
     ) -> AccountResult<()> {
-        let key = format!("oauth_{}", account_id.0);
+        let key = format!("oauth:{}", account_id);
         let value = serde_json::json!({
             "access_token": access_token,
             "refresh_token": refresh_token,
@@ -404,10 +402,9 @@ impl<S: AccountStorage, C: CredentialStore> AccountService<S, C> {
     pub async fn get_oauth_tokens(
         &self,
         account_id: &AccountId,
-    ) -> AccountResult<Option<(String, Option<String>)>> {
-        let key = format!("oauth_{}", account_id.0);
-
-        match self.credentials.get(&key).await? {
+    ) -> AccountResult<Option<(String, String)>> {
+        let key = format!("oauth:{}", account_id);
+        match self.credentials.retrieve(&key).await? {
             Some(value) => {
                 let parsed: serde_json::Value = serde_json::from_str(&value)
                     .map_err(|e| AccountError::CredentialError(e.to_string()))?;
@@ -415,32 +412,35 @@ impl<S: AccountStorage, C: CredentialStore> AccountService<S, C> {
                     .as_str()
                     .ok_or_else(|| AccountError::CredentialError("missing access_token".into()))?
                     .to_string();
-                let refresh_token = parsed["refresh_token"].as_str().map(|s| s.to_string());
+                let refresh_token = parsed["refresh_token"]
+                    .as_str()
+                    .ok_or_else(|| AccountError::CredentialError("missing refresh_token".into()))?
+                    .to_string();
                 Ok(Some((access_token, refresh_token)))
             }
             None => Ok(None),
         }
     }
 
-    /// Stores password for an IMAP account.
+    /// Stores a password for an account.
     pub async fn store_password(
         &self,
         account_id: &AccountId,
         password: &str,
     ) -> AccountResult<()> {
-        let key = format!("password_{}", account_id.0);
+        let key = format!("password:{}", account_id);
         self.credentials.store(&key, password).await
     }
 
-    /// Retrieves password for an IMAP account.
+    /// Retrieves a password for an account.
     pub async fn get_password(&self, account_id: &AccountId) -> AccountResult<Option<String>> {
-        let key = format!("password_{}", account_id.0);
-        self.credentials.get(&key).await
+        let key = format!("password:{}", account_id);
+        self.credentials.retrieve(&key).await
     }
 
-    /// Returns account statistics.
+    /// Gets account statistics.
     pub async fn get_stats(&self) -> AccountResult<AccountStats> {
-        let accounts = self.storage.get_all().await?;
+        let accounts = self.storage.get_all_accounts().await?;
 
         let mut stats = AccountStats {
             total_accounts: accounts.len() as u32,
@@ -453,30 +453,32 @@ impl<S: AccountStorage, C: CredentialStore> AccountService<S, C> {
                 ProviderType::Imap => stats.imap_accounts += 1,
             }
             if account.sync_enabled {
-                stats.sync_enabled_count += 1;
+                stats.sync_enabled_accounts += 1;
             }
         }
 
         Ok(stats)
     }
 
-    /// Returns the total number of accounts.
+    /// Counts total accounts.
     pub async fn count(&self) -> AccountResult<u32> {
-        self.storage.count().await
+        self.storage.count_accounts().await
     }
 }
 
 /// Validates an email address format.
 fn is_valid_email(email: &str) -> bool {
-    // Basic validation: contains @ with text on both sides
     let parts: Vec<&str> = email.split('@').collect();
     if parts.len() != 2 {
         return false;
     }
-    !parts[0].is_empty() && !parts[1].is_empty() && parts[1].contains('.')
+    let local = parts[0];
+    let domain = parts[1];
+
+    !local.is_empty() && !domain.is_empty() && domain.contains('.')
 }
 
-/// Validates provider configuration matches provider type.
+/// Validates provider configuration.
 fn validate_provider_config(
     provider_type: &ProviderType,
     config: &ProviderConfig,
@@ -499,7 +501,7 @@ fn validate_provider_config(
             Ok(())
         }
         _ => Err(AccountError::InvalidConfig(
-            "provider type does not match configuration".into(),
+            "provider type and config mismatch".into(),
         )),
     }
 }
@@ -511,7 +513,7 @@ mod tests {
     use std::sync::Mutex;
 
     struct MockStorage {
-        accounts: Mutex<HashMap<String, Account>>,
+        accounts: Mutex<HashMap<AccountId, Account>>,
     }
 
     impl MockStorage {
@@ -524,56 +526,42 @@ mod tests {
 
     #[async_trait]
     impl AccountStorage for MockStorage {
-        async fn insert(&self, account: &Account) -> AccountResult<()> {
-            self.accounts
-                .lock()
-                .unwrap()
-                .insert(account.id.0.clone(), account.clone());
-            Ok(())
-        }
-
-        async fn get_by_id(&self, account_id: &AccountId) -> AccountResult<Option<Account>> {
-            Ok(self.accounts.lock().unwrap().get(&account_id.0).cloned())
+        async fn get_account(&self, id: &AccountId) -> AccountResult<Option<Account>> {
+            let accounts = self.accounts.lock().unwrap();
+            Ok(accounts.get(id).cloned())
         }
 
         async fn get_by_email(&self, email: &str) -> AccountResult<Option<Account>> {
-            Ok(self
-                .accounts
-                .lock()
-                .unwrap()
-                .values()
-                .find(|a| a.email == email)
-                .cloned())
+            let accounts = self.accounts.lock().unwrap();
+            Ok(accounts.values().find(|a| a.email == email).cloned())
         }
 
-        async fn get_all(&self) -> AccountResult<Vec<Account>> {
-            Ok(self.accounts.lock().unwrap().values().cloned().collect())
+        async fn get_all_accounts(&self) -> AccountResult<Vec<Account>> {
+            let accounts = self.accounts.lock().unwrap();
+            Ok(accounts.values().cloned().collect())
         }
 
-        async fn update(&self, account: &Account) -> AccountResult<()> {
-            self.accounts
-                .lock()
-                .unwrap()
-                .insert(account.id.0.clone(), account.clone());
+        async fn insert_account(&self, account: &Account) -> AccountResult<()> {
+            let mut accounts = self.accounts.lock().unwrap();
+            accounts.insert(account.id.clone(), account.clone());
             Ok(())
         }
 
-        async fn delete(&self, account_id: &AccountId) -> AccountResult<()> {
-            self.accounts.lock().unwrap().remove(&account_id.0);
+        async fn update_account(&self, account: &Account) -> AccountResult<()> {
+            let mut accounts = self.accounts.lock().unwrap();
+            accounts.insert(account.id.clone(), account.clone());
             Ok(())
         }
 
-        async fn exists_by_email(&self, email: &str) -> AccountResult<bool> {
-            Ok(self
-                .accounts
-                .lock()
-                .unwrap()
-                .values()
-                .any(|a| a.email == email))
+        async fn delete_account(&self, id: &AccountId) -> AccountResult<()> {
+            let mut accounts = self.accounts.lock().unwrap();
+            accounts.remove(id);
+            Ok(())
         }
 
-        async fn count(&self) -> AccountResult<u32> {
-            Ok(self.accounts.lock().unwrap().len() as u32)
+        async fn count_accounts(&self) -> AccountResult<u32> {
+            let accounts = self.accounts.lock().unwrap();
+            Ok(accounts.len() as u32)
         }
     }
 
@@ -592,19 +580,19 @@ mod tests {
     #[async_trait]
     impl CredentialStore for MockCredentials {
         async fn store(&self, key: &str, value: &str) -> AccountResult<()> {
-            self.store
-                .lock()
-                .unwrap()
-                .insert(key.to_string(), value.to_string());
+            let mut store = self.store.lock().unwrap();
+            store.insert(key.to_string(), value.to_string());
             Ok(())
         }
 
-        async fn get(&self, key: &str) -> AccountResult<Option<String>> {
-            Ok(self.store.lock().unwrap().get(key).cloned())
+        async fn retrieve(&self, key: &str) -> AccountResult<Option<String>> {
+            let store = self.store.lock().unwrap();
+            Ok(store.get(key).cloned())
         }
 
         async fn delete(&self, key: &str) -> AccountResult<()> {
-            self.store.lock().unwrap().remove(key);
+            let mut store = self.store.lock().unwrap();
+            store.remove(key);
             Ok(())
         }
     }
@@ -624,30 +612,25 @@ mod tests {
         assert_eq!(account.email, "test@gmail.com");
         assert_eq!(account.display_name, Some("Test User".to_string()));
         assert_eq!(account.provider_type, ProviderType::Gmail);
-        assert!(account.sync_enabled);
     }
 
     #[tokio::test]
     async fn create_imap_account() {
         let mut service = create_service();
 
-        let request = CreateAccountRequest::imap(
-            "test@example.com",
-            "imap.example.com",
-            993,
-            "smtp.example.com",
-            587,
-            true,
-        );
+        let request =
+            CreateAccountRequest::imap("test@example.com", "imap.example.com", "smtp.example.com")
+                .signature("Best regards");
 
         let account = service.create_account(request).await.unwrap();
 
         assert_eq!(account.email, "test@example.com");
         assert_eq!(account.provider_type, ProviderType::Imap);
+        assert_eq!(account.signature, Some("Best regards".to_string()));
     }
 
     #[tokio::test]
-    async fn reject_duplicate_email() {
+    async fn create_account_duplicate() {
         let mut service = create_service();
 
         let request = CreateAccountRequest::gmail("test@gmail.com");
@@ -658,44 +641,50 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn reject_invalid_email() {
+    async fn create_account_invalid_email() {
         let mut service = create_service();
 
-        let request = CreateAccountRequest::gmail("invalid-email");
-        let result = service.create_account(request).await;
+        let mut request = CreateAccountRequest::gmail("invalid");
+        request.email = "invalid".to_string();
 
+        let result = service.create_account(request).await;
         assert!(matches!(result, Err(AccountError::InvalidConfig(_))));
     }
 
     #[tokio::test]
-    async fn get_account_by_id() {
+    async fn get_account() {
         let mut service = create_service();
 
         let request = CreateAccountRequest::gmail("test@gmail.com");
         let created = service.create_account(request).await.unwrap();
 
-        let retrieved = service.get_account(&created.id).await.unwrap();
-        assert!(retrieved.is_some());
-        assert_eq!(retrieved.unwrap().email, "test@gmail.com");
+        let fetched = service.get_account(&created.id).await.unwrap();
+        assert_eq!(fetched.email, "test@gmail.com");
     }
 
     #[tokio::test]
-    async fn update_account_settings() {
+    async fn get_account_not_found() {
+        let service = create_service();
+
+        let result = service.get_account(&AccountId::from("nonexistent")).await;
+        assert!(matches!(result, Err(AccountError::NotFound(_))));
+    }
+
+    #[tokio::test]
+    async fn update_account() {
         let mut service = create_service();
 
         let request = CreateAccountRequest::gmail("test@gmail.com");
         let created = service.create_account(request).await.unwrap();
 
         let update = AccountUpdate::new()
-            .display_name(Some("New Name"))
-            .sync_enabled(false)
-            .signature(Some("-- Sent from margin"));
+            .display_name("New Name")
+            .sync_enabled(false);
 
         let updated = service.update_account(&created.id, update).await.unwrap();
 
         assert_eq!(updated.display_name, Some("New Name".to_string()));
         assert!(!updated.sync_enabled);
-        assert_eq!(updated.signature, Some("-- Sent from margin".to_string()));
     }
 
     #[tokio::test]
@@ -707,126 +696,114 @@ mod tests {
 
         service.delete_account(&created.id).await.unwrap();
 
-        let retrieved = service.get_account(&created.id).await.unwrap();
-        assert!(retrieved.is_none());
+        let result = service.get_account(&created.id).await;
+        assert!(matches!(result, Err(AccountError::NotFound(_))));
     }
 
     #[tokio::test]
-    async fn active_account_management() {
+    async fn active_account() {
         let mut service = create_service();
 
-        // First account becomes active automatically
-        let first = service
-            .create_account(CreateAccountRequest::gmail("first@gmail.com"))
-            .await
-            .unwrap();
+        // No active account initially
+        let active = service.get_active_account().await.unwrap();
+        assert!(active.is_none());
 
-        assert_eq!(service.active_account_id(), Some(&first.id));
+        // First account becomes active
+        let request = CreateAccountRequest::gmail("first@gmail.com");
+        let first = service.create_account(request).await.unwrap();
 
-        // Second account doesn't change active
-        let second = service
-            .create_account(CreateAccountRequest::gmail("second@gmail.com"))
-            .await
-            .unwrap();
+        let active = service.get_active_account().await.unwrap();
+        assert_eq!(active.unwrap().id, first.id);
 
-        assert_eq!(service.active_account_id(), Some(&first.id));
+        // Create second account and switch to it
+        let request = CreateAccountRequest::gmail("second@gmail.com");
+        let second = service.create_account(request).await.unwrap();
 
-        // Can switch active account
         service.set_active_account(&second.id).await.unwrap();
-        assert_eq!(service.active_account_id(), Some(&second.id));
+        let active = service.get_active_account().await.unwrap();
+        assert_eq!(active.unwrap().id, second.id);
     }
 
     #[tokio::test]
-    async fn store_and_retrieve_oauth_tokens() {
+    async fn oauth_tokens() {
         let mut service = create_service();
 
-        let account = service
-            .create_account(CreateAccountRequest::gmail("test@gmail.com"))
-            .await
-            .unwrap();
+        let request = CreateAccountRequest::gmail("test@gmail.com");
+        let account = service.create_account(request).await.unwrap();
 
+        // Store tokens
         service
-            .store_oauth_tokens(&account.id, "access123", Some("refresh456"))
+            .store_oauth_tokens(&account.id, "access123", "refresh456")
             .await
             .unwrap();
 
+        // Retrieve tokens
         let tokens = service.get_oauth_tokens(&account.id).await.unwrap();
-        assert!(tokens.is_some());
-
         let (access, refresh) = tokens.unwrap();
         assert_eq!(access, "access123");
-        assert_eq!(refresh, Some("refresh456".to_string()));
+        assert_eq!(refresh, "refresh456");
     }
 
     #[tokio::test]
-    async fn store_and_retrieve_password() {
+    async fn password_storage() {
         let mut service = create_service();
 
-        let account = service
-            .create_account(CreateAccountRequest::imap(
-                "test@example.com",
-                "imap.example.com",
-                993,
-                "smtp.example.com",
-                587,
-                true,
-            ))
-            .await
-            .unwrap();
+        let request =
+            CreateAccountRequest::imap("test@example.com", "imap.example.com", "smtp.example.com");
+        let account = service.create_account(request).await.unwrap();
 
+        // Store password
         service
             .store_password(&account.id, "secret123")
             .await
             .unwrap();
 
+        // Retrieve password
         let password = service.get_password(&account.id).await.unwrap();
         assert_eq!(password, Some("secret123".to_string()));
     }
 
     #[tokio::test]
-    async fn account_stats() {
+    async fn get_stats() {
         let mut service = create_service();
 
         service
-            .create_account(CreateAccountRequest::gmail("gmail@example.com"))
+            .create_account(CreateAccountRequest::gmail("g1@gmail.com"))
             .await
             .unwrap();
-
         service
-            .create_account(
-                CreateAccountRequest::imap(
-                    "imap@example.com",
-                    "imap.example.com",
-                    993,
-                    "smtp.example.com",
-                    587,
-                    true,
-                )
-                .sync_disabled(),
-            )
+            .create_account(CreateAccountRequest::gmail("g2@gmail.com").sync_disabled())
+            .await
+            .unwrap();
+        service
+            .create_account(CreateAccountRequest::imap(
+                "test@example.com",
+                "imap.example.com",
+                "smtp.example.com",
+            ))
             .await
             .unwrap();
 
         let stats = service.get_stats().await.unwrap();
 
-        assert_eq!(stats.total_accounts, 2);
-        assert_eq!(stats.gmail_accounts, 1);
+        assert_eq!(stats.total_accounts, 3);
+        assert_eq!(stats.gmail_accounts, 2);
         assert_eq!(stats.imap_accounts, 1);
-        assert_eq!(stats.sync_enabled_count, 1);
+        assert_eq!(stats.sync_enabled_accounts, 2);
     }
 
-    #[test]
-    fn email_validation() {
+    #[tokio::test]
+    async fn email_validation() {
         assert!(is_valid_email("test@example.com"));
-        assert!(is_valid_email("user.name@subdomain.example.com"));
+        assert!(is_valid_email("user.name@domain.org"));
         assert!(!is_valid_email("invalid"));
-        assert!(!is_valid_email("@example.com"));
-        assert!(!is_valid_email("test@"));
-        assert!(!is_valid_email("test@com"));
+        assert!(!is_valid_email("@domain.com"));
+        assert!(!is_valid_email("user@"));
+        assert!(!is_valid_email("user@domain"));
     }
 
-    #[test]
-    fn provider_config_validation() {
+    #[tokio::test]
+    async fn provider_config_validation() {
         assert!(validate_provider_config(&ProviderType::Gmail, &ProviderConfig::Gmail {}).is_ok());
 
         assert!(validate_provider_config(

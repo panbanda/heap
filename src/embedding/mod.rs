@@ -26,7 +26,9 @@
 //! ```
 
 mod engine;
+mod models;
 mod vector_store;
 
 pub use engine::{Embedding, EmbeddingConfig, EmbeddingEngine};
+pub use models::{DownloadStatus, ModelInfo, ModelRegistry, ModelType};
 pub use vector_store::VectorStore;
