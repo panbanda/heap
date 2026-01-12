@@ -119,6 +119,7 @@ pub struct ScreenerQueue {
     /// Currently selected entry index.
     selected_index: Option<usize>,
     /// Whether AI analysis is loading.
+    #[allow(dead_code)]
     ai_loading: bool,
     /// Filter by sender type.
     filter: Option<SenderType>,

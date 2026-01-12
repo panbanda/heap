@@ -180,7 +180,7 @@ impl fmt::Display for Key {
 }
 
 /// Modifier keys.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub struct Modifiers {
     /// Command/Super key (Cmd on macOS, Win on Windows).
     pub cmd: bool,
@@ -190,17 +190,6 @@ pub struct Modifiers {
     pub alt: bool,
     /// Shift key.
     pub shift: bool,
-}
-
-impl Default for Modifiers {
-    fn default() -> Self {
-        Self {
-            cmd: false,
-            ctrl: false,
-            alt: false,
-            shift: false,
-        }
-    }
 }
 
 impl Modifiers {
@@ -366,10 +355,11 @@ impl fmt::Display for KeyBinding {
 }
 
 /// Context in which keybindings are active.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum KeyContext {
     /// Global context (always active unless overridden).
+    #[default]
     Global,
     /// Message list view.
     MessageList,
@@ -383,12 +373,6 @@ pub enum KeyContext {
     Settings,
     /// Search bar.
     Search,
-}
-
-impl Default for KeyContext {
-    fn default() -> Self {
-        Self::Global
-    }
 }
 
 /// A command that can be triggered by a keybinding.

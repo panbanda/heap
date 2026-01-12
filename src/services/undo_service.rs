@@ -83,7 +83,7 @@ impl ActionType {
 }
 
 /// State before an action, used for undoing.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ActionState {
     /// Thread IDs affected.
     pub thread_ids: Vec<ThreadId>,
@@ -101,21 +101,6 @@ pub struct ActionState {
     pub starred_states: Vec<(ThreadId, bool)>,
     /// Snooze until time.
     pub snooze_until: Option<DateTime<Utc>>,
-}
-
-impl Default for ActionState {
-    fn default() -> Self {
-        Self {
-            thread_ids: Vec::new(),
-            original_folder: None,
-            target_folder: None,
-            original_labels: Vec::new(),
-            affected_labels: Vec::new(),
-            read_states: Vec::new(),
-            starred_states: Vec::new(),
-            snooze_until: None,
-        }
-    }
 }
 
 impl ActionState {
