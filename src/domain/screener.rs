@@ -68,7 +68,7 @@ pub enum RuleType {
 }
 
 /// Categorization of a sender type by AI analysis.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SenderType {
     /// A person the user has corresponded with before.

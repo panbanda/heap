@@ -180,7 +180,7 @@ impl AvatarGroup {
     }
 
     /// Add an avatar by name.
-    pub fn add(mut self, name: &str) -> Self {
+    pub fn with_avatar(mut self, name: &str) -> Self {
         let initials = extract_initials(name);
         let seed = name.bytes().fold(0u32, |acc, b| acc.wrapping_add(b as u32));
         self.avatars.push((initials.into(), seed));
@@ -304,9 +304,9 @@ mod tests {
     #[test]
     fn avatar_group_builder() {
         let group = AvatarGroup::new("group")
-            .add("Alice")
-            .add("Bob")
-            .add("Charlie")
+            .with_avatar("Alice")
+            .with_avatar("Bob")
+            .with_avatar("Charlie")
             .size(AvatarSize::Medium)
             .max_visible(2);
 

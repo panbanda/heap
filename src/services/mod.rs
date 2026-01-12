@@ -27,13 +27,21 @@
 //! - [`LabelService`]: Manages email labels and folders
 //! - [`SnoozeService`]: Temporarily hides emails until a scheduled time
 //! - [`TelemetryService`]: Local usage statistics and event tracking
+//! - [`ScreenerService`]: Manages unknown sender triage and screening
+//! - [`NotificationService`]: In-app and system notifications
+//! - [`SmartViewService`]: AI-powered email classification into smart views
+//! - [`StatsService`]: Usage statistics and metrics aggregation
 
 mod ai_service;
 mod contact_service;
 mod email_service;
 mod label_service;
+mod notification_service;
+mod screener_service;
 mod search_service;
+mod smart_view_service;
 mod snooze_service;
+mod stats_service;
 mod sync_service;
 mod telemetry_service;
 mod undo_service;
@@ -46,11 +54,26 @@ pub use contact_service::{
 };
 pub use email_service::{Draft, EmailService, Pagination, ViewType};
 pub use label_service::{LabelError, LabelService, LabelSort, LabelStorage};
+pub use notification_service::{
+    NotificationCategory, NotificationError, NotificationPriority, NotificationRequest,
+    NotificationService, NotificationSettings, SentNotification,
+};
+pub use screener_service::{
+    ScreenerError, ScreenerFilter, ScreenerService, ScreenerStats, ScreenerStorage,
+};
 pub use search_service::{
     DateRange, EmailMetadata, FtsHit, SearchFolder, SearchHit, SearchMode, SearchQuery,
     SearchResults, SearchService, SearchSettings, SearchSource, SearchStorage,
 };
+pub use smart_view_service::{
+    Classification, ClassificationCriteria, ClassificationInput, SmartViewError, SmartViewService,
+    SmartViewStorage, SmartViewType,
+};
 pub use snooze_service::{SnoozeDuration, SnoozeError, SnoozeService, SnoozeStorage, SnoozedItem};
+pub use stats_service::{
+    AiStats, BusiestHour, DailyActivity, EmailStats, ProductivityStats, StatsError, StatsEvent,
+    StatsReport, StatsService, StatsStorage, TopCorrespondent,
+};
 pub use sync_service::{SyncResult, SyncService, SyncSettings, SyncStatus};
 pub use telemetry_service::{
     AggregatedStats, DailyStats, EventPayload, EventType, StatsTimeRange, TelemetryError,
