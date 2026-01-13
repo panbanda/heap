@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2](https://github.com/panbanda/heap/compare/heap-v0.1.1...heap-v0.1.2) (2026-01-13)
+
+
+### Features
+
+* **ui:** add interactive MainWindow with overlays and keyboard support ([#14](https://github.com/panbanda/heap/issues/14)) ([445342a](https://github.com/panbanda/heap/commit/445342a908f1125fda32c9d681bd8fe5621ab38f))
+
 ## [0.1.1](https://github.com/panbanda/heap/compare/heap-v0.1.0...heap-v0.1.1) (2026-01-12)
 
 
