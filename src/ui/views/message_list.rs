@@ -93,6 +93,7 @@ impl MessageList {
         if self.focused_index + 1 < self.threads.len() {
             self.focused_index += 1;
             self.selected_thread_id = Some(self.threads[self.focused_index].id.clone());
+            self.ensure_focused_visible();
         }
     }
 
@@ -101,12 +102,47 @@ impl MessageList {
         if self.focused_index > 0 {
             self.focused_index -= 1;
             self.selected_thread_id = Some(self.threads[self.focused_index].id.clone());
+            self.ensure_focused_visible();
+        }
+    }
+
+    /// Ensure the focused item is visible in the viewport.
+    fn ensure_focused_visible(&mut self) {
+        let item_top = self.list_state.item_offset(self.focused_index);
+        let item_bottom = item_top + self.list_state.item_height;
+        let scroll_top = self.list_state.scroll_offset;
+        let scroll_bottom = scroll_top + self.list_state.viewport_height;
+
+        if item_top < scroll_top {
+            self.list_state.scroll_offset = item_top;
+        } else if item_bottom > scroll_bottom {
+            self.list_state.scroll_offset = item_bottom - self.list_state.viewport_height;
         }
     }
 
     /// Get the currently focused thread.
     pub fn focused_thread(&self) -> Option<&ThreadListItem> {
         self.threads.get(self.focused_index)
+    }
+
+    /// Update the viewport height for virtualization.
+    pub fn set_viewport_height(&mut self, height: f32) {
+        self.list_state.viewport_height = height;
+    }
+
+    /// Handle scroll by delta pixels.
+    pub fn scroll_by(&mut self, delta: f32) {
+        self.list_state.scroll_by(delta);
+    }
+
+    /// Scroll to ensure focused item is visible.
+    pub fn scroll_to_focused(&mut self) {
+        self.list_state.scroll_to_item(self.focused_index);
+    }
+
+    /// Get the visible range of items.
+    pub fn visible_range(&self) -> std::ops::Range<usize> {
+        self.list_state.visible_range()
     }
 
     fn view_title(&self) -> &str {
@@ -123,6 +159,10 @@ impl MessageList {
             ViewType::Search(_) => "Search Results",
             ViewType::Settings => "Settings",
             ViewType::Stats => "Statistics",
+            ViewType::Actionable => "Actionable",
+            ViewType::Newsletters => "Newsletters",
+            ViewType::Social => "Social",
+            ViewType::Updates => "Updates",
         }
     }
 
@@ -149,10 +189,92 @@ impl MessageList {
             )
     }
 
-    fn render_thread_item(
+    fn render_empty_state(&self) -> impl IntoElement {
+        div().flex_1().flex().items_center().justify_center().child(
+            div()
+                .flex()
+                .flex_col()
+                .items_center()
+                .gap(px(8.0))
+                .child(
+                    div()
+                        .text_color(self.colors.text_primary)
+                        .child(SharedString::from("No messages")),
+                )
+                .child(
+                    div()
+                        .text_sm()
+                        .text_color(self.colors.text_muted)
+                        .child(SharedString::from("Your inbox is empty")),
+                ),
+        )
+    }
+
+    fn render_loading_state(&self) -> impl IntoElement {
+        div().flex_1().flex().items_center().justify_center().child(
+            div()
+                .text_color(self.colors.text_muted)
+                .child(SharedString::from("Loading...")),
+        )
+    }
+}
+
+impl Render for MessageList {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        // Get visible range from virtualization state
+        let visible_range = self.list_state.visible_range();
+        let total_height = self.list_state.total_height();
+
+        // Only render visible items with their absolute positions
+        let thread_items: Vec<_> = self
+            .threads
+            .iter()
+            .enumerate()
+            .filter(|(idx, _)| visible_range.contains(idx))
+            .map(|(idx, thread)| {
+                let offset = self.list_state.item_offset(idx);
+                self.render_thread_item_virtualized(thread, idx, offset, cx)
+            })
+            .collect();
+
+        div()
+            .id("message-list")
+            .w(px(380.0))
+            .h_full()
+            .flex()
+            .flex_col()
+            .bg(self.colors.background)
+            .border_r_1()
+            .border_color(self.colors.border)
+            .child(self.render_header())
+            .child(
+                div()
+                    .flex_1()
+                    .overflow_y_hidden()
+                    .when(self.loading, |this| this.child(self.render_loading_state()))
+                    .when(!self.loading && self.threads.is_empty(), |this| {
+                        this.child(self.render_empty_state())
+                    })
+                    .when(!self.loading && !self.threads.is_empty(), |this| {
+                        // Container with total height for proper scrolling
+                        this.child(
+                            div()
+                                .relative()
+                                .h(px(total_height))
+                                .w_full()
+                                .children(thread_items),
+                        )
+                    }),
+            )
+    }
+}
+
+impl MessageList {
+    fn render_thread_item_virtualized(
         &self,
         thread: &ThreadListItem,
         index: usize,
+        top_offset: f32,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
         let is_selected = self
@@ -160,6 +282,7 @@ impl MessageList {
             .as_ref()
             .is_some_and(|id| *id == thread.id);
         let is_focused = index == self.focused_index;
+        let item_height = self.list_state.item_height;
 
         let bg = if is_selected {
             self.colors.surface_elevated
@@ -195,6 +318,11 @@ impl MessageList {
 
         div()
             .id(SharedString::from(format!("thread-{}", index)))
+            .absolute()
+            .left_0()
+            .right_0()
+            .top(px(top_offset))
+            .h(px(item_height))
             .px(px(16.0))
             .py(px(12.0))
             .bg(bg)
@@ -259,70 +387,6 @@ impl MessageList {
                     .text_color(text_secondary)
                     .truncate()
                     .child(SharedString::from(thread.snippet.clone())),
-            )
-    }
-
-    fn render_empty_state(&self) -> impl IntoElement {
-        div().flex_1().flex().items_center().justify_center().child(
-            div()
-                .flex()
-                .flex_col()
-                .items_center()
-                .gap(px(8.0))
-                .child(
-                    div()
-                        .text_color(self.colors.text_primary)
-                        .child(SharedString::from("No messages")),
-                )
-                .child(
-                    div()
-                        .text_sm()
-                        .text_color(self.colors.text_muted)
-                        .child(SharedString::from("Your inbox is empty")),
-                ),
-        )
-    }
-
-    fn render_loading_state(&self) -> impl IntoElement {
-        div().flex_1().flex().items_center().justify_center().child(
-            div()
-                .text_color(self.colors.text_muted)
-                .child(SharedString::from("Loading...")),
-        )
-    }
-}
-
-impl Render for MessageList {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        // Collect thread items for rendering with click handlers
-        let thread_items: Vec<_> = self
-            .threads
-            .iter()
-            .enumerate()
-            .map(|(idx, thread)| self.render_thread_item(thread, idx, cx))
-            .collect();
-
-        div()
-            .id("message-list")
-            .w(px(380.0))
-            .h_full()
-            .flex()
-            .flex_col()
-            .bg(self.colors.background)
-            .border_r_1()
-            .border_color(self.colors.border)
-            .child(self.render_header())
-            .child(
-                div()
-                    .flex_1()
-                    .overflow_y_hidden()
-                    .when(self.loading, |this| this.child(self.render_loading_state()))
-                    .when(!self.loading && self.threads.is_empty(), |this| {
-                        this.child(self.render_empty_state())
-                    })
-                    .when(!self.loading && !self.threads.is_empty(), |this| {
-                        this.children(thread_items)
-                    }),
             )
     }
 }
@@ -398,5 +462,64 @@ mod tests {
 
         list.focus_previous();
         assert_eq!(list.focused_index, 1);
+    }
+
+    #[test]
+    fn virtualization_visible_range() {
+        let mut list = MessageList {
+            colors: ThemeColors::dark(),
+            view_type: ViewType::Inbox,
+            threads: (0..100)
+                .map(|i| make_thread(&format!("{}", i), &format!("Thread {}", i), false))
+                .collect(),
+            selected_thread_id: None,
+            focused_index: 0,
+            list_state: VirtualizedListState::new(100)
+                .with_item_height(72.0)
+                .with_viewport_height(360.0) // 5 items visible
+                .with_buffer(2),
+            loading: false,
+            on_select: None,
+        };
+
+        // Initially should show items 0-6 (5 visible + 2 buffer below)
+        let range = list.visible_range();
+        assert_eq!(range.start, 0);
+        assert!(range.end <= 8); // buffer of 2 on each side
+
+        // Scroll down
+        list.scroll_by(144.0); // 2 items
+        let range = list.visible_range();
+        // Buffer may include item 0
+        assert!(range.contains(&2));
+        assert!(range.contains(&6));
+    }
+
+    #[test]
+    fn virtualization_scroll_to_focused() {
+        let mut list = MessageList {
+            colors: ThemeColors::dark(),
+            view_type: ViewType::Inbox,
+            threads: (0..50)
+                .map(|i| make_thread(&format!("{}", i), &format!("Thread {}", i), false))
+                .collect(),
+            selected_thread_id: None,
+            focused_index: 0,
+            list_state: VirtualizedListState::new(50)
+                .with_item_height(72.0)
+                .with_viewport_height(360.0),
+            loading: false,
+            on_select: None,
+        };
+
+        // Navigate to item 10
+        for _ in 0..10 {
+            list.focus_next();
+        }
+        assert_eq!(list.focused_index, 10);
+
+        // The scroll offset should have adjusted to keep item visible
+        let visible = list.visible_range();
+        assert!(visible.contains(&10));
     }
 }
