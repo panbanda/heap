@@ -11,19 +11,7 @@ env:
   RUSTFLAGS: -Dwarnings
 
 jobs:
-  check:
-    name: Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libwayland-dev libvulkan-dev libfreetype6-dev libfontconfig1-dev
-      - run: cargo check --all-features --workspace
-
+  # Fast checks that don't need compilation
   fmt:
     name: Format
     runs-on: ubuntu-latest
@@ -34,65 +22,6 @@ jobs:
           components: rustfmt
       - run: cargo fmt --all -- --check
 
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-      - uses: Swatinem/rust-cache@v2
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libwayland-dev libvulkan-dev libfreetype6-dev libfontconfig1-dev
-      - run: cargo clippy --all-features --workspace -- -D warnings
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libwayland-dev libvulkan-dev libfreetype6-dev libfontconfig1-dev
-      - run: cargo test --all-features --workspace
-
-  test-macos:
-    name: Test (macOS)
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo test --all-features --workspace
-
-  coverage:
-    name: Coverage
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: llvm-tools-preview
-      - uses: Swatinem/rust-cache@v2
-      - uses: taiki-e/install-action@cargo-llvm-cov
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libwayland-dev libvulkan-dev libfreetype6-dev libfontconfig1-dev
-      - name: Generate coverage
-        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          files: lcov.info
-          fail_ci_if_error: false
-
   security:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -102,17 +31,75 @@ jobs:
       - uses: taiki-e/install-action@cargo-audit
       - run: cargo audit || true
 
-  doc:
-    name: Documentation
+  # Combined check + clippy + test (single compilation)
+  build-and-test:
+    name: Build & Test (Linux)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
       - uses: Swatinem/rust-cache@v2
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libwayland-dev libvulkan-dev libfreetype6-dev libfontconfig1-dev
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libwayland-dev libvulkan-dev libfreetype6-dev libfontconfig1-dev
+          version: 1.0
+      - name: Check
+        run: cargo check --all-features --workspace
+      - name: Clippy
+        run: cargo clippy --all-features --workspace -- -D warnings
+      - name: Test
+        run: cargo test --all-features --workspace
+
+  # macOS test (skip on draft PRs)
+  test-macos:
+    name: Test (macOS)
+    runs-on: macos-latest
+    if: github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --all-features --workspace
+
+  # Documentation (only on main or non-draft PRs)
+  doc:
+    name: Documentation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libwayland-dev libvulkan-dev libfreetype6-dev libfontconfig1-dev
+          version: 1.0
       - run: cargo doc --no-deps --all-features
         env:
           RUSTDOCFLAGS: -Dwarnings
+
+  # Coverage (only on main branch pushes)
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libxkbcommon-dev libxkbcommon-x11-dev libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev libwayland-dev libvulkan-dev libfreetype6-dev libfontconfig1-dev
+          version: 1.0
+      - name: Generate coverage
+        run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: lcov.info
+          fail_ci_if_error: false
