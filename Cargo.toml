@@ -13,7 +13,7 @@ rust-version = "1.75"
 gpui = { git = "https://github.com/zed-industries/zed", package = "gpui" }
 
 # Database
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.40", features = ["bundled"] }
 
 # Async runtime
 tokio = { version = "1", features = ["full"] }
