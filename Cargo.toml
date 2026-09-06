@@ -29,7 +29,7 @@ bytes = "1"
 # Email protocols
 async-imap = "0.10"
 lettre = { version = "0.11", default-features = false, features = ["tokio1", "tokio1-rustls-tls", "builder", "smtp-transport", "hostname"] }
-mailparse = "0.15"
+mailparse = "0.17"
 mail-parser = "0.9"
 
 # ML inference
